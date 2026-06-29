@@ -95,8 +95,9 @@ export function serializeReservation(
 }
 
 export function getBlockingOverlapFilter(checkIn: Date, checkOut: Date) {
-  // pending 예약은 앞뒤 1일 버퍼 적용 (인접 예약 방지)
-  // approved 예약은 기존과 동일한 엄격한 겹침 검사
+  // pending: checkOut 이후 날짜를 새 checkIn으로 막음 (뒤 버퍼만)
+  //          단, checkIn 직전 날짜 체크아웃은 허용 (앞 버퍼 없음)
+  // approved: 정확한 겹침만 검사
   return {
     $or: [
       {
@@ -107,7 +108,7 @@ export function getBlockingOverlapFilter(checkIn: Date, checkOut: Date) {
       {
         status: "pending",
         checkIn: { $lt: addDays(checkOut, 1) },
-        checkOut: { $gt: addDays(checkIn, -1) },
+        checkOut: { $gt: checkIn },
       },
     ],
   };

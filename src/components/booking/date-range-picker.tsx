@@ -1,6 +1,6 @@
 "use client";
 
-import { addDays, format, startOfDay } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { ko } from "date-fns/locale";
 import { useMemo } from "react";
 import { DayPicker, useDayPicker, type DateRange, type MonthCaptionProps } from "react-day-picker";
@@ -79,9 +79,9 @@ export function DateRangePicker({
       (date: Date) => {
         // approved: 정확한 범위만 비활성화
         if (inRange(date, approvedRanges)) return true;
-        // pending: 앞뒤 1일 버퍼 포함 비활성화
+        // pending: checkOut 당일까지 비활성화 (뒤 버퍼만, 앞은 허용)
         return pendingRanges.some(
-          (r) => date >= addDays(r.checkIn, -1) && date <= r.checkOut,
+          (r) => date >= r.checkIn && date <= r.checkOut,
         );
       },
     ],
