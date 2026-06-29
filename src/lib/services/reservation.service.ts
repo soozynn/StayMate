@@ -1,4 +1,5 @@
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
+import { after } from "next/server";
 import { Types } from "mongoose";
 
 import {
@@ -171,9 +172,13 @@ export async function createReservation(
 
   const serialized = serializeReservation(reservation);
 
-  // 이메일 발송은 예약 완료 흐름을 대기시키지 않도록 백그라운드에서 실행
-  sendAdminNotification(serialized, token).catch((error) => {
-    console.error("[ReservationService] 관리자 예약 접수 메일 전송 실패:", error);
+  // after()로 응답 후 이메일 전송 보장 (Vercel 서버리스에서 fire-and-forget 소멸 방지)
+  after(async () => {
+    try {
+      await sendAdminNotification(serialized, token);
+    } catch (error) {
+      console.error("[ReservationService] 관리자 예약 접수 메일 전송 실패:", error);
+    }
   });
 
   return serialized;
@@ -250,16 +255,18 @@ export async function updateStatus(
 
   const serialized = serializeReservation(reservation);
 
-  // 최종 처리 결과를 게스트에게 이메일로 비동기 전송
-  if (status === "approved") {
-    sendGuestConfirmation(serialized).catch((error) => {
-      console.error("[ReservationService] 게스트 확정 메일 전송 실패:", error);
-    });
-  } else if (status === "rejected") {
-    sendGuestRejection(serialized, options.adminNote).catch((error) => {
-      console.error("[ReservationService] 게스트 거절 메일 전송 실패:", error);
-    });
-  }
+  // after()로 응답 후 이메일 전송 보장 (Vercel 서버리스에서 fire-and-forget 소멸 방지)
+  after(async () => {
+    try {
+      if (status === "approved") {
+        await sendGuestConfirmation(serialized);
+      } else if (status === "rejected") {
+        await sendGuestRejection(serialized, options.adminNote);
+      }
+    } catch (error) {
+      console.error("[ReservationService] 게스트 메일 전송 실패:", error);
+    }
+  });
 
   return serialized;
 }
