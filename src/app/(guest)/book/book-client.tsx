@@ -62,9 +62,34 @@ export function BookClient({ blockedRanges }: { blockedRanges: BlockedRange[] })
         </div>
 
         <div>
-          <p className="mb-3 text-sm font-medium text-slate-900">
+          <p className="mb-1 text-sm font-medium text-slate-900">
             체크인 / 체크아웃
           </p>
+          <p className="mb-3 text-xs text-slate-400">
+            달력에서 체크인 날짜를 먼저 선택한 후, 체크아웃 날짜를 선택해주세요.
+          </p>
+          {!dateRange?.from && (
+            <div className="mb-3 flex items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" x2="12" y1="8" y2="12" />
+                <line x1="12" x2="12.01" y1="16" y2="16" />
+              </svg>
+              <p className="text-xs font-medium text-indigo-600">
+                체크인 날짜를 먼저 선택해주세요
+              </p>
+            </div>
+          )}
+          {dateRange?.from && !dateRange?.to && (
+            <div className="mb-3 flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              <p className="text-xs font-medium text-emerald-600">
+                체크인 날짜가 선택됐어요. 이제 체크아웃 날짜를 선택해주세요.
+              </p>
+            </div>
+          )}
           <DateRangePicker
             blockedRanges={blockedRanges}
             value={dateRange}
