@@ -3,7 +3,7 @@ import { addMonths } from "date-fns";
 import { getBlockedRanges } from "@/lib/services/availability.service";
 import { BookClient } from "./book-client";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function BookPage() {
   const from = new Date();

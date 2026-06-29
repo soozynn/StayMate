@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
     });
 
     revalidatePath("/calendar");
+    revalidatePath("/book");
     return NextResponse.json({ reservation }, { status: 201 });
   } catch (error) {
     return handleRouteError(error);

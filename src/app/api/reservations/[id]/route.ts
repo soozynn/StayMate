@@ -47,6 +47,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     const reservation = await cancelReservation(id, session.user.id);
 
     revalidatePath("/calendar");
+    revalidatePath("/book");
     return NextResponse.json({ reservation });
   } catch (error) {
     return handleRouteError(error);
