@@ -93,6 +93,16 @@ export function DateRangePicker({
     const from = range.from ? startOfDay(range.from) : undefined;
     const to = range.to ? startOfDay(range.to) : undefined;
 
+    // 첫 클릭 시 react-day-picker가 from == to로 보냄 → to를 undefined로 저장해 "체크아웃 선택 중" 상태 유지
+    if (from && to && from.getTime() === to.getTime()) {
+      if (parsed.some((r) => from.getTime() === r.checkIn.getTime())) {
+        onChange(undefined);
+        return;
+      }
+      onChange({ from: range.from, to: undefined });
+      return;
+    }
+
     if (from && !to) {
       // 예약된 checkIn 날짜를 새 예약의 시작일로 선택하는 것을 차단
       if (parsed.some((r) => from.getTime() === r.checkIn.getTime())) {
@@ -102,7 +112,7 @@ export function DateRangePicker({
     }
 
     if (from && to) {
-      // 선택 범위가 기존 예약과 겹치면 차단 (checkIn < to AND checkOut > from)
+      // 선택 범위가 기존 예약과 겹치면 차단
       if (parsed.some((r) => r.checkIn < to && r.checkOut > from)) {
         onChange({ from: range.from, to: undefined });
         return;
@@ -112,12 +122,19 @@ export function DateRangePicker({
     onChange(range);
   }
 
+  const isPickingEnd = Boolean(value?.from && !value?.to);
+
   const modifiers = useMemo(
     () => ({
-      pending: (date: Date) => inRange(date, pendingRanges),
-      approved: (date: Date) => inRange(date, approvedRanges),
+      // 체크인 선택 후 체크아웃을 고르는 중이면 경계(checkIn) 날짜 색상 제거
+      // → 체크아웃 가능한 날짜는 일반 날짜와 동일하게 표시
+      pending: (date: Date) =>
+        isPickingEnd ? inRangeInterior(date, pendingRanges) : inRange(date, pendingRanges),
+      approved: (date: Date) =>
+        isPickingEnd ? inRangeInterior(date, approvedRanges) : inRange(date, approvedRanges),
     }),
-    [pendingRanges, approvedRanges],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pendingRanges, approvedRanges, isPickingEnd],
   );
 
   return (
