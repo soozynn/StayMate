@@ -1,6 +1,6 @@
 "use client";
 
-import { format, startOfDay } from "date-fns";
+import { addDays, format, startOfDay } from "date-fns";
 import { ko } from "date-fns/locale";
 import { useMemo } from "react";
 import { DayPicker, useDayPicker, type DateRange, type MonthCaptionProps } from "react-day-picker";
@@ -79,16 +79,35 @@ export function DateRangePicker({
   const pendingRanges = useMemo(() => parsed.filter((r) => r.status === "pending"), [parsed]);
   const approvedRanges = useMemo(() => parsed.filter((r) => r.status === "approved"), [parsed]);
 
-  // approved checkIn은 허용(이전 체크아웃으로 선택 가능), pending checkIn은 완전 차단
-  const disabledDays = useMemo(
-    () => [
+  const isPickingEnd = Boolean(value?.from && !value?.to);
+
+  const disabledDays = useMemo(() => {
+    // 체크아웃 선택 단계
+    if (isPickingEnd && value?.from) {
+      const from = startOfDay(value.from);
+
+      // from 이후 첫 번째 예약 checkIn — 이 날짜 자체는 체크아웃으로 허용, 초과는 차단
+      const nextBlockCheckIn = parsed
+        .map((r) => r.checkIn)
+        .filter((c) => c > from)
+        .sort((a, b) => a.getTime() - b.getTime())[0];
+
+      return [
+        { before: from }, // from 자체는 활성 — 클릭 시 선택 해제 가능
+        ...(nextBlockCheckIn
+          ? [(date: Date) => startOfDay(date) > nextBlockCheckIn]
+          : []),
+      ];
+    }
+
+    // 체크인 선택 단계: pending checkIn 날짜 + 모든 예약 내부 날짜 차단
+    return [
       { before: today },
       (date: Date) => inRangeInterior(date, parsed),
       (date: Date) => pendingRanges.some((r) => date.getTime() === r.checkIn.getTime()),
-    ],
+    ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [parsed, pendingRanges],
-  );
+  }, [parsed, pendingRanges, isPickingEnd, value?.from]);
 
   // 범위 선택 검증: 예약된 checkIn 날짜를 새 checkIn 시작으로 막고, 실제 겹침도 차단
   function handleSelect(range: DateRange | undefined) {
@@ -97,8 +116,14 @@ export function DateRangePicker({
     const from = range.from ? startOfDay(range.from) : undefined;
     const to = range.to ? startOfDay(range.to) : undefined;
 
-    // 첫 클릭 시 react-day-picker가 from == to로 보냄 → to를 undefined로 저장해 "체크아웃 선택 중" 상태 유지
+    // 첫 클릭 시 react-day-picker가 from == to로 보냄
     if (from && to && from.getTime() === to.getTime()) {
+      // 이미 선택된 체크인 날짜를 다시 클릭 → 선택 해제
+      if (value?.from && from.getTime() === startOfDay(value.from).getTime()) {
+        onChange(undefined);
+        return;
+      }
+      // 예약된 checkIn 날짜 클릭 → 선택 불가
       if (parsed.some((r) => from.getTime() === r.checkIn.getTime())) {
         onChange(undefined);
         return;
@@ -126,12 +151,12 @@ export function DateRangePicker({
     onChange(range);
   }
 
-  // pending은 항상 표시(비활성 시각 표현), approved는 선택 없을 때만 표시
+  // 아무것도 선택 안 됐을 때만 예약 현황 색상 표시 — 선택 중엔 제거해 혼란 방지
   const hasSelection = Boolean(value?.from);
 
   const modifiers = useMemo(
     () => ({
-      pending: (date: Date) => inRange(date, pendingRanges),
+      pending: (date: Date) => !hasSelection && inRange(date, pendingRanges),
       approved: (date: Date) => !hasSelection && inRange(date, approvedRanges),
     }),
     [pendingRanges, approvedRanges, hasSelection],
@@ -202,13 +227,16 @@ export function DateRangePicker({
           background: linear-gradient(to left, transparent 50%, #e2e8f0 50%);
         }
 
-        /* pending — 노란 배경 + 회색 텍스트 + 취소선으로 "예약 대기중, 선택 불가" 표현 */
+        /* pending — 노란 배경 + 회색 텍스트 (항상) */
         .day--pending button {
           background-color: #fde68a !important;
           color: #9ca3af !important;
+          opacity: 1 !important;
+        }
+        /* pending이면서 실제 disabled일 때만 취소선 + not-allowed */
+        .day--pending button:disabled {
           text-decoration: line-through !important;
           cursor: not-allowed !important;
-          opacity: 1 !important;
         }
         /* approved — 회색 배경 + 취소선 */
         .day--approved button {
