@@ -122,19 +122,15 @@ export function DateRangePicker({
     onChange(range);
   }
 
-  const isPickingEnd = Boolean(value?.from && !value?.to);
+  // 날짜를 하나라도 선택한 상태면 승인 대기/예약됨 색상 완전 제거
+  const hasSelection = Boolean(value?.from);
 
   const modifiers = useMemo(
     () => ({
-      // 체크인 선택 후 체크아웃을 고르는 중이면 경계(checkIn) 날짜 색상 제거
-      // → 체크아웃 가능한 날짜는 일반 날짜와 동일하게 표시
-      pending: (date: Date) =>
-        isPickingEnd ? inRangeInterior(date, pendingRanges) : inRange(date, pendingRanges),
-      approved: (date: Date) =>
-        isPickingEnd ? inRangeInterior(date, approvedRanges) : inRange(date, approvedRanges),
+      pending: (date: Date) => !hasSelection && inRange(date, pendingRanges),
+      approved: (date: Date) => !hasSelection && inRange(date, approvedRanges),
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pendingRanges, approvedRanges, isPickingEnd],
+    [pendingRanges, approvedRanges, hasSelection],
   );
 
   return (
