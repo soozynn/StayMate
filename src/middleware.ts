@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-const protectedRoutes = ["/book/confirm"];
+const protectedRoutes = ["/book/confirm", "/reservations/mine"];
 const adminRoutes = ["/admin"];
 
 function isRouteMatch(pathname: string, routes: string[]) {
