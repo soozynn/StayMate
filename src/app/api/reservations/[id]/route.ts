@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
 import { handleRouteError, jsonError } from "@/lib/api/responses";
-import { getReservationById } from "@/lib/services/reservation.service";
+import { cancelReservation, getReservationById } from "@/lib/services/reservation.service";
 
 type RouteContext = {
   params: Promise<{
@@ -27,6 +27,23 @@ export async function GET(_request: Request, context: RouteContext) {
     ) {
       return jsonError("Forbidden", 403);
     }
+
+    return NextResponse.json({ reservation });
+  } catch (error) {
+    return handleRouteError(error);
+  }
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return jsonError("Authentication required", 401);
+    }
+
+    const { id } = await context.params;
+    const reservation = await cancelReservation(id, session.user.id);
 
     return NextResponse.json({ reservation });
   } catch (error) {

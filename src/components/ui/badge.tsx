@@ -1,4 +1,4 @@
-type ReservationStatus = "pending" | "approved" | "rejected";
+type ReservationStatus = "pending" | "approved" | "rejected" | "cancelled";
 
 const statusConfig: Record<
   ReservationStatus,
@@ -15,6 +15,10 @@ const statusConfig: Record<
   rejected: {
     label: "거절됨",
     className: "bg-red-50 text-red-600 border-red-200",
+  },
+  cancelled: {
+    label: "취소됨",
+    className: "bg-slate-50 text-slate-500 border-slate-200",
   },
 };
 

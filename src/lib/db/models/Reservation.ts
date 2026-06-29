@@ -10,6 +10,7 @@ export const RESERVATION_STATUSES = [
   "pending",
   "approved",
   "rejected",
+  "cancelled",
 ] as const;
 
 export const REVIEW_SOURCES = ["email", "admin"] as const;

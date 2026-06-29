@@ -17,7 +17,7 @@ import type {
   UpdateReservationStatusInput,
 } from "@/lib/validators/reservation.schema";
 
-export type ReservationStatus = "pending" | "approved" | "rejected";
+export type ReservationStatus = "pending" | "approved" | "rejected" | "cancelled";
 
 const BLOCKING_STATUSES: ReservationStatus[] = ["pending", "approved"];
 
@@ -27,7 +27,9 @@ type ServiceErrorCode =
   | "OVERLAP"
   | "ALREADY_REVIEWED"
   | "TOKEN_REQUIRED"
-  | "TOKEN_INVALID";
+  | "TOKEN_INVALID"
+  | "FORBIDDEN"
+  | "CANNOT_CANCEL";
 
 export class ReservationServiceError extends Error {
   constructor(
@@ -271,16 +273,48 @@ export async function updateStatus(
   return serialized;
 }
 
+export async function cancelReservation(id: string, requestingUserId: string) {
+  await connectMongoose();
+
+  const reservation = await ReservationModel.findById(toObjectId(id)).exec();
+
+  if (!reservation) {
+    throw new ReservationServiceError("NOT_FOUND", "Reservation not found");
+  }
+
+  if (reservation.userId.toString() !== requestingUserId) {
+    throw new ReservationServiceError("FORBIDDEN", "Forbidden");
+  }
+
+  if (reservation.status === "cancelled" || reservation.status === "rejected") {
+    throw new ReservationServiceError(
+      "CANNOT_CANCEL",
+      "This reservation cannot be cancelled",
+    );
+  }
+
+  reservation.status = "cancelled";
+  reservation.actionTokenHash = undefined;
+  reservation.actionTokenExpiresAt = undefined;
+
+  await reservation.save();
+
+  return serializeReservation(reservation);
+}
+
 export function getReservationServiceStatus(error: ReservationServiceError) {
   switch (error.code) {
     case "INVALID_ID":
       return 400;
     case "OVERLAP":
     case "ALREADY_REVIEWED":
+    case "CANNOT_CANCEL":
       return 409;
     case "TOKEN_REQUIRED":
     case "TOKEN_INVALID":
       return 401;
+    case "FORBIDDEN":
+      return 403;
     case "NOT_FOUND":
       return 404;
   }

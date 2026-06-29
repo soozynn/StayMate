@@ -76,6 +76,28 @@ const navItems: NavItem[] = [
       </svg>
     ),
   },
+  {
+    href: "/reservations/mine",
+    label: "내 예약",
+    icon: (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M19 21H5a2 2 0 0 1-2-2V7l3-4h12l3 4v12a2 2 0 0 1-2 2z" />
+        <path d="M3 7h18" />
+        <path d="M9 11h6" />
+        <path d="M9 15h6" />
+      </svg>
+    ),
+  },
 ];
 
 export function BottomNav() {
