@@ -48,8 +48,14 @@ type DateRangePickerProps = {
 
 type ParsedRange = { checkIn: Date; checkOut: Date; status: "pending" | "approved" };
 
+// 모디파이어용: checkIn 포함 (시각적 색상 표시)
 function inRange(date: Date, ranges: ParsedRange[]): boolean {
   return ranges.some((r) => date >= r.checkIn && date < r.checkOut);
+}
+
+// disabled용: checkIn 제외 (체크인 날짜는 이전 예약의 체크아웃으로 허용)
+function inRangeInterior(date: Date, ranges: ParsedRange[]): boolean {
+  return ranges.some((r) => date > r.checkIn && date < r.checkOut);
 }
 
 export function DateRangePicker({
@@ -63,8 +69,8 @@ export function DateRangePicker({
   const parsed = useMemo<ParsedRange[]>(
     () =>
       blockedRanges.map((r) => ({
-        checkIn: new Date(r.checkIn),
-        checkOut: new Date(r.checkOut),
+        checkIn: startOfDay(new Date(r.checkIn)),
+        checkOut: startOfDay(new Date(r.checkOut)),
         status: r.status,
       })),
     [blockedRanges],
@@ -73,11 +79,38 @@ export function DateRangePicker({
   const pendingRanges = useMemo(() => parsed.filter((r) => r.status === "pending"), [parsed]);
   const approvedRanges = useMemo(() => parsed.filter((r) => r.status === "approved"), [parsed]);
 
+  // checkIn 경계는 disabled 제외 → 이전 날 체크인 유저가 이 날짜를 체크아웃으로 선택 가능
   const disabledDays = useMemo(
-    () => [{ before: today }, (date: Date) => inRange(date, parsed)],
+    () => [{ before: today }, (date: Date) => inRangeInterior(date, parsed)],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [parsed],
   );
+
+  // 범위 선택 검증: 예약된 checkIn 날짜를 새 checkIn 시작으로 막고, 실제 겹침도 차단
+  function handleSelect(range: DateRange | undefined) {
+    if (!range) { onChange(undefined); return; }
+
+    const from = range.from ? startOfDay(range.from) : undefined;
+    const to = range.to ? startOfDay(range.to) : undefined;
+
+    if (from && !to) {
+      // 예약된 checkIn 날짜를 새 예약의 시작일로 선택하는 것을 차단
+      if (parsed.some((r) => from.getTime() === r.checkIn.getTime())) {
+        onChange(undefined);
+        return;
+      }
+    }
+
+    if (from && to) {
+      // 선택 범위가 기존 예약과 겹치면 차단 (checkIn < to AND checkOut > from)
+      if (parsed.some((r) => r.checkIn < to && r.checkOut > from)) {
+        onChange({ from: range.from, to: undefined });
+        return;
+      }
+    }
+
+    onChange(range);
+  }
 
   const modifiers = useMemo(
     () => ({
@@ -92,7 +125,7 @@ export function DateRangePicker({
       <DayPicker
         mode="range"
         selected={value}
-        onSelect={onChange}
+        onSelect={handleSelect}
         locale={ko}
         disabled={disabledDays}
         modifiers={modifiers}
