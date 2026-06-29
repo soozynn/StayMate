@@ -1,4 +1,5 @@
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
+import { addDays } from "date-fns";
 import { after } from "next/server";
 import { Types } from "mongoose";
 
@@ -94,10 +95,21 @@ export function serializeReservation(
 }
 
 export function getBlockingOverlapFilter(checkIn: Date, checkOut: Date) {
+  // pending 예약은 앞뒤 1일 버퍼 적용 (인접 예약 방지)
+  // approved 예약은 기존과 동일한 엄격한 겹침 검사
   return {
-    status: { $in: BLOCKING_STATUSES },
-    checkIn: { $lt: checkOut },
-    checkOut: { $gt: checkIn },
+    $or: [
+      {
+        status: "approved",
+        checkIn: { $lt: checkOut },
+        checkOut: { $gt: checkIn },
+      },
+      {
+        status: "pending",
+        checkIn: { $lt: addDays(checkOut, 1) },
+        checkOut: { $gt: addDays(checkIn, -1) },
+      },
+    ],
   };
 }
 
