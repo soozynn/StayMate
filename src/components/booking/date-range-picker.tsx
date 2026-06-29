@@ -79,11 +79,15 @@ export function DateRangePicker({
   const pendingRanges = useMemo(() => parsed.filter((r) => r.status === "pending"), [parsed]);
   const approvedRanges = useMemo(() => parsed.filter((r) => r.status === "approved"), [parsed]);
 
-  // checkIn 경계는 disabled 제외 → 이전 날 체크인 유저가 이 날짜를 체크아웃으로 선택 가능
+  // approved checkIn은 허용(이전 체크아웃으로 선택 가능), pending checkIn은 완전 차단
   const disabledDays = useMemo(
-    () => [{ before: today }, (date: Date) => inRangeInterior(date, parsed)],
+    () => [
+      { before: today },
+      (date: Date) => inRangeInterior(date, parsed),
+      (date: Date) => pendingRanges.some((r) => date.getTime() === r.checkIn.getTime()),
+    ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [parsed],
+    [parsed, pendingRanges],
   );
 
   // 범위 선택 검증: 예약된 checkIn 날짜를 새 checkIn 시작으로 막고, 실제 겹침도 차단
@@ -122,12 +126,12 @@ export function DateRangePicker({
     onChange(range);
   }
 
-  // 날짜를 하나라도 선택한 상태면 승인 대기/예약됨 색상 완전 제거
+  // pending은 항상 표시(비활성 시각 표현), approved는 선택 없을 때만 표시
   const hasSelection = Boolean(value?.from);
 
   const modifiers = useMemo(
     () => ({
-      pending: (date: Date) => !hasSelection && inRange(date, pendingRanges),
+      pending: (date: Date) => inRange(date, pendingRanges),
       approved: (date: Date) => !hasSelection && inRange(date, approvedRanges),
     }),
     [pendingRanges, approvedRanges, hasSelection],
@@ -198,11 +202,15 @@ export function DateRangePicker({
           background: linear-gradient(to left, transparent 50%, #e2e8f0 50%);
         }
 
-        /* pending/approved — 먼저 정의해서 선택 날짜 스타일에 항상 오버라이드됨 */
+        /* pending — 노란 배경 + 회색 텍스트 + 취소선으로 "예약 대기중, 선택 불가" 표현 */
         .day--pending button {
           background-color: #fde68a !important;
-          color: #92400e !important;
+          color: #9ca3af !important;
+          text-decoration: line-through !important;
+          cursor: not-allowed !important;
+          opacity: 1 !important;
         }
+        /* approved — 회색 배경 + 취소선 */
         .day--approved button {
           background-color: #e2e8f0 !important;
           color: #94a3b8 !important;
