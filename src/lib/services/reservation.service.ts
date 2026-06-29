@@ -1,0 +1,280 @@
+import { createHash, randomBytes, timingSafeEqual } from "crypto";
+import { Types } from "mongoose";
+
+import {
+  ReservationModel,
+  type ReservationDocument,
+} from "@/lib/db/models/Reservation";
+import { connectMongoose } from "@/lib/db/mongoose";
+import {
+  sendAdminNotification,
+  sendGuestConfirmation,
+  sendGuestRejection,
+} from "@/lib/services/email.service";
+import type {
+  CreateReservationWithSessionInput,
+  UpdateReservationStatusInput,
+} from "@/lib/validators/reservation.schema";
+
+export type ReservationStatus = "pending" | "approved" | "rejected";
+
+const BLOCKING_STATUSES: ReservationStatus[] = ["pending", "approved"];
+
+type ServiceErrorCode =
+  | "INVALID_ID"
+  | "NOT_FOUND"
+  | "OVERLAP"
+  | "ALREADY_REVIEWED"
+  | "TOKEN_REQUIRED"
+  | "TOKEN_INVALID";
+
+export class ReservationServiceError extends Error {
+  constructor(
+    public code: ServiceErrorCode,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ReservationServiceError";
+  }
+}
+
+export type SerializedReservation = {
+  id: string;
+  userId: string;
+  guestName: string;
+  guestEmail: string;
+  guestCount: number;
+  checkIn: string;
+  checkOut: string;
+  memo?: string;
+  status: ReservationStatus;
+  adminNote?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  reviewSource?: "email" | "admin";
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function toObjectId(id: string): Types.ObjectId {
+  if (!Types.ObjectId.isValid(id)) {
+    throw new ReservationServiceError("INVALID_ID", "Invalid reservation id");
+  }
+
+  return new Types.ObjectId(id);
+}
+
+function optionalDateToISOString(value?: Date | null) {
+  return value ? value.toISOString() : undefined;
+}
+
+export function serializeReservation(
+  reservation: ReservationDocument,
+): SerializedReservation {
+  return {
+    id: reservation.id,
+    userId: reservation.userId.toString(),
+    guestName: reservation.guestName,
+    guestEmail: reservation.guestEmail,
+    guestCount: reservation.guestCount,
+    checkIn: reservation.checkIn.toISOString(),
+    checkOut: reservation.checkOut.toISOString(),
+    memo: reservation.memo || undefined,
+    status: reservation.status as ReservationStatus,
+    adminNote: reservation.adminNote || undefined,
+    reviewedAt: optionalDateToISOString(reservation.reviewedAt),
+    reviewedBy: reservation.reviewedBy || undefined,
+    reviewSource: (reservation.reviewSource as "email" | "admin" | null) || undefined,
+    createdAt: reservation.createdAt.toISOString(),
+    updatedAt: reservation.updatedAt.toISOString(),
+  };
+}
+
+export function getBlockingOverlapFilter(checkIn: Date, checkOut: Date) {
+  return {
+    status: { $in: BLOCKING_STATUSES },
+    checkIn: { $lt: checkOut },
+    checkOut: { $gt: checkIn },
+  };
+}
+
+function hashToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+function assertValidActionToken(
+  reservation: ReservationDocument,
+  token?: string,
+) {
+  if (!token) {
+    throw new ReservationServiceError("TOKEN_REQUIRED", "Token is required");
+  }
+
+  if (
+    !reservation.actionTokenHash ||
+    !reservation.actionTokenExpiresAt ||
+    reservation.actionTokenExpiresAt < new Date()
+  ) {
+    throw new ReservationServiceError("TOKEN_INVALID", "Token is invalid");
+  }
+
+  const expected = Buffer.from(reservation.actionTokenHash, "hex");
+  const actual = Buffer.from(hashToken(token), "hex");
+
+  if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
+    throw new ReservationServiceError("TOKEN_INVALID", "Token is invalid");
+  }
+}
+
+export async function hasOverlappingReservation(
+  checkIn: Date,
+  checkOut: Date,
+) {
+  await connectMongoose();
+
+  const overlap = await ReservationModel.exists(
+    getBlockingOverlapFilter(checkIn, checkOut),
+  );
+
+  return Boolean(overlap);
+}
+
+export async function createReservation(
+  input: CreateReservationWithSessionInput,
+) {
+  await connectMongoose();
+
+  const hasOverlap = await hasOverlappingReservation(
+    input.checkIn,
+    input.checkOut,
+  );
+
+  if (hasOverlap) {
+    throw new ReservationServiceError(
+      "OVERLAP",
+      "Selected dates are already blocked",
+    );
+  }
+
+  // 1회용 빠른 승인/거절을 위한 무작위 액션 토큰 생성
+  const token = randomBytes(32).toString("hex");
+  const actionTokenHash = hashToken(token);
+  const actionTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24시간 유효
+
+  const reservation = await ReservationModel.create({
+    ...input,
+    status: "pending",
+    memo: input.memo || undefined,
+    actionTokenHash,
+    actionTokenExpiresAt,
+  });
+
+  const serialized = serializeReservation(reservation);
+
+  // 이메일 발송은 예약 완료 흐름을 대기시키지 않도록 백그라운드에서 실행
+  sendAdminNotification(serialized, token).catch((error) => {
+    console.error("[ReservationService] 관리자 예약 접수 메일 전송 실패:", error);
+  });
+
+  return serialized;
+}
+
+export async function getReservationById(id: string) {
+  await connectMongoose();
+
+  const reservation = await ReservationModel.findById(toObjectId(id)).exec();
+
+  if (!reservation) {
+    throw new ReservationServiceError("NOT_FOUND", "Reservation not found");
+  }
+
+  return serializeReservation(reservation);
+}
+
+export async function listReservations(options?: {
+  userId?: string;
+  status?: ReservationStatus;
+}) {
+  await connectMongoose();
+
+  const filter: Record<string, unknown> = {};
+
+  if (options?.userId) {
+    filter.userId = toObjectId(options.userId);
+  }
+
+  if (options?.status) {
+    filter.status = options.status;
+  }
+
+  const reservations = await ReservationModel.find(filter)
+    .sort({ createdAt: -1 })
+    .exec();
+
+  return reservations.map(serializeReservation);
+}
+
+export async function updateStatus(
+  id: string,
+  status: Extract<ReservationStatus, "approved" | "rejected">,
+  options: Omit<UpdateReservationStatusInput, "status">,
+) {
+  await connectMongoose();
+
+  const reservation = await ReservationModel.findById(toObjectId(id)).exec();
+
+  if (!reservation) {
+    throw new ReservationServiceError("NOT_FOUND", "Reservation not found");
+  }
+
+  if (reservation.status !== "pending") {
+    throw new ReservationServiceError(
+      "ALREADY_REVIEWED",
+      "Only pending reservations can be reviewed",
+    );
+  }
+
+  if (options.source === "email") {
+    assertValidActionToken(reservation, options.token);
+  }
+
+  reservation.status = status;
+  reservation.reviewedAt = new Date();
+  reservation.reviewedBy = options.reviewedBy;
+  reservation.reviewSource = options.source;
+  reservation.adminNote = options.adminNote || undefined;
+  reservation.actionTokenHash = undefined;
+  reservation.actionTokenExpiresAt = undefined;
+
+  await reservation.save();
+
+  const serialized = serializeReservation(reservation);
+
+  // 최종 처리 결과를 게스트에게 이메일로 비동기 전송
+  if (status === "approved") {
+    sendGuestConfirmation(serialized).catch((error) => {
+      console.error("[ReservationService] 게스트 확정 메일 전송 실패:", error);
+    });
+  } else if (status === "rejected") {
+    sendGuestRejection(serialized, options.adminNote).catch((error) => {
+      console.error("[ReservationService] 게스트 거절 메일 전송 실패:", error);
+    });
+  }
+
+  return serialized;
+}
+
+export function getReservationServiceStatus(error: ReservationServiceError) {
+  switch (error.code) {
+    case "INVALID_ID":
+      return 400;
+    case "OVERLAP":
+    case "ALREADY_REVIEWED":
+      return 409;
+    case "TOKEN_REQUIRED":
+    case "TOKEN_INVALID":
+      return 401;
+    case "NOT_FOUND":
+      return 404;
+  }
+}
