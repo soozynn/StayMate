@@ -74,19 +74,9 @@ export function DateRangePicker({
   const approvedRanges = useMemo(() => parsed.filter((r) => r.status === "approved"), [parsed]);
 
   const disabledDays = useMemo(
-    () => [
-      { before: today },
-      (date: Date) => {
-        // approved: 정확한 범위만 비활성화
-        if (inRange(date, approvedRanges)) return true;
-        // pending: checkOut 당일까지 비활성화 (뒤 버퍼만, 앞은 허용)
-        return pendingRanges.some(
-          (r) => date >= r.checkIn && date <= r.checkOut,
-        );
-      },
-    ],
+    () => [{ before: today }, (date: Date) => inRange(date, parsed)],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pendingRanges, approvedRanges],
+    [parsed],
   );
 
   const modifiers = useMemo(
