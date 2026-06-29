@@ -1,18 +1,11 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { unstable_cache } from "next/cache";
 
 import { auth } from "@/auth";
 import { connectMongoose } from "@/lib/db/mongoose";
 import { PageHeader } from "@/components/layout/page-header";
 import { listReservations } from "@/lib/services/reservation.service";
 import { ReservationsView } from "./reservations-view";
-
-const getCachedReservations = unstable_cache(
-  (userId: string) => listReservations({ userId }),
-  ["user-reservations"],
-  { revalidate: 30 },
-);
 
 async function ReservationsContent() {
   // auth()와 MongoDB 연결을 병렬 실행 — cold start 시 연결 대기 시간 단축
@@ -22,8 +15,7 @@ async function ReservationsContent() {
     redirect("/login");
   }
 
-  // connectMongoose()가 이미 완료됐으므로 캐시 미스 시에도 연결 대기 없이 쿼리 실행
-  const reservations = await getCachedReservations(session.user.id);
+  const reservations = await listReservations({ userId: session.user.id });
   return <ReservationsView initialReservations={reservations} />;
 }
 
