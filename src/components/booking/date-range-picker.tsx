@@ -186,14 +186,6 @@ export function DateRangePicker({
       </div>
 
       <style>{`
-        /* 선택된 날짜 시작/끝 — 검정 타원 + 흰 글씨 */
-        .day--range-start button,
-        .day--range-end button {
-          background-color: #0f172a !important;
-          color: #ffffff !important;
-          border-radius: 9999px;
-        }
-
         /* 범위 중간 날짜 — 연한 회색 배경 */
         .day--range-middle button {
           background-color: #e2e8f0 !important;
@@ -210,7 +202,7 @@ export function DateRangePicker({
           background: linear-gradient(to left, transparent 50%, #e2e8f0 50%);
         }
 
-        /* pending/approved 블록 */
+        /* pending/approved — 먼저 정의해서 선택 날짜 스타일에 항상 오버라이드됨 */
         .day--pending button {
           background-color: #fde68a !important;
           color: #92400e !important;
@@ -219,6 +211,21 @@ export function DateRangePicker({
           background-color: #e2e8f0 !important;
           color: #94a3b8 !important;
           text-decoration: line-through;
+        }
+
+        /* 선택된 날짜 시작/끝 — pending/approved보다 나중에 정의해서 항상 우선 */
+        .day--range-start button,
+        .day--range-end button {
+          background-color: #0f172a !important;
+          color: #ffffff !important;
+          border-radius: 9999px;
+        }
+
+        /* 체크인만 선택 시 (체크아웃 미선택): react-day-picker가 range_start를 미적용
+           — day--selected만 있는 경우 직접 검정 원 표시 */
+        .day--selected:not(.day--range-start):not(.day--range-middle):not(.day--range-end) button {
+          background-color: #0f172a !important;
+          color: #ffffff !important;
         }
       `}</style>
     </div>
