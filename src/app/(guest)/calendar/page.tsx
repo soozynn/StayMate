@@ -14,7 +14,21 @@ type BlockedRange = {
   checkIn: string;
   checkOut: string;
   status: "pending" | "approved";
+  guestName: string;
 };
+
+function maskName(name: string): string {
+  if (name.length <= 1) return name;
+  if (name.length === 2) return name[0] + "*";
+  return name[0] + "*".repeat(name.length - 2) + name[name.length - 1];
+}
+
+function getNightsLabel(checkIn: string, checkOut: string): string {
+  const nights = Math.round(
+    (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24),
+  );
+  return `${nights}박 ${nights + 1}일`;
+}
 
 type ParsedRange = {
   checkIn: Date;
@@ -151,10 +165,18 @@ export default function CalendarPage() {
                       key={range.id}
                       className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3"
                     >
-                      <p className="text-sm font-medium text-slate-900">
-                        {format(new Date(range.checkIn), "MM.dd")} –{" "}
-                        {format(new Date(range.checkOut), "MM.dd")}
-                      </p>
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">
+                          {format(new Date(range.checkIn), "MM.dd")} –{" "}
+                          {format(new Date(range.checkOut), "MM.dd")}
+                          <span className="ml-1.5 text-xs font-normal text-slate-400">
+                            {getNightsLabel(range.checkIn, range.checkOut)}
+                          </span>
+                        </p>
+                        <p className="mt-0.5 text-xs text-slate-400">
+                          {maskName(range.guestName)}
+                        </p>
+                      </div>
                       <StatusBadge status={range.status} />
                     </div>
                   ))}
