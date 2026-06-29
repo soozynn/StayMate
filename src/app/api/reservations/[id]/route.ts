@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
 import { handleRouteError, jsonError } from "@/lib/api/responses";
@@ -45,6 +46,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     const { id } = await context.params;
     const reservation = await cancelReservation(id, session.user.id);
 
+    revalidatePath("/calendar");
     return NextResponse.json({ reservation });
   } catch (error) {
     return handleRouteError(error);

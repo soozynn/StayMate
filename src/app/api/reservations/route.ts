@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
 import { handleRouteError, jsonError } from "@/lib/api/responses";
@@ -24,6 +25,7 @@ export async function POST(request: NextRequest) {
       guestEmail: input.guestEmail || session.user.email,
     });
 
+    revalidatePath("/calendar");
     return NextResponse.json({ reservation }, { status: 201 });
   } catch (error) {
     return handleRouteError(error);

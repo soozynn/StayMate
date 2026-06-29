@@ -169,7 +169,7 @@ export function DateRangePicker({
           selected: "day--selected",
           today: "day--today",
           outside: "opacity-30",
-          disabled: "opacity-30 cursor-not-allowed",
+          disabled: "cursor-not-allowed",
         }}
       />
 

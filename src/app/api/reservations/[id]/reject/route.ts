@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 import { getServerEnv } from "@/lib/env";
 import {
@@ -21,6 +22,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   try {
     // 공통 서비스인 updateStatus를 호출하여 토큰 검증 및 예약 거절 처리 (날짜 재활성화)
+    revalidatePath("/calendar");
     const reservation = await updateStatus(id, "rejected", {
       source: "email",
       token,
