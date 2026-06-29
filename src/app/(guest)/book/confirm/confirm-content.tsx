@@ -1,14 +1,12 @@
 "use client";
 
 import { format, parseISO } from "date-fns";
-import { useSession } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,44 +24,33 @@ const confirmSchema = z.object({
 
 type ConfirmForm = z.infer<typeof confirmSchema>;
 
-function InputSkeleton({ label }: { label: string }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-sm font-medium text-slate-900">{label}</span>
-      <div className="h-11 w-full animate-pulse rounded-xl border border-slate-200 bg-slate-100" />
-    </div>
-  );
-}
+type Props = {
+  checkIn?: string;
+  checkOut?: string;
+  guestCount?: string;
+  defaultName: string;
+  defaultEmail: string;
+};
 
-export function BookConfirmContent() {
+export function BookConfirmForm({
+  checkIn,
+  checkOut,
+  guestCount: guestCountStr,
+  defaultName,
+  defaultEmail,
+}: Props) {
   const router = useRouter();
-  const params = useSearchParams();
-  const { data: session, status } = useSession();
-  const isSessionLoading = status === "loading";
+  const guestCount = Number(guestCountStr ?? 1);
   const [submitError, setSubmitError] = useState<string | null>(null);
-
-  const checkIn = params.get("checkIn");
-  const checkOut = params.get("checkOut");
-  const guestCount = Number(params.get("guestCount") ?? 1);
 
   const {
     register,
     handleSubmit,
-    reset,
     formState: { errors, isSubmitting },
   } = useForm<ConfirmForm>({
     resolver: zodResolver(confirmSchema),
-    defaultValues: { guestName: "", guestEmail: "" },
+    defaultValues: { guestName: defaultName, guestEmail: defaultEmail },
   });
-
-  useEffect(() => {
-    if (status === "authenticated" && session?.user) {
-      reset({
-        guestName: session.user.name ?? "",
-        guestEmail: session.user.email ?? "",
-      });
-    }
-  }, [status, session, reset]);
 
   if (!checkIn || !checkOut) {
     return (
@@ -125,85 +112,71 @@ export function BookConfirmContent() {
   }
 
   return (
-    <>
-      <PageHeader subtitle="예약 확인" title="예약 정보 입력" />
-
-      <div className="space-y-6 px-5">
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm space-y-2">
-          <div className="flex justify-between">
-            <span className="text-slate-500">체크인</span>
-            <span className="font-medium">{format(checkInDate, "yyyy.MM.dd")}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-slate-500">체크아웃</span>
-            <span className="font-medium">{format(checkOutDate, "yyyy.MM.dd")}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-slate-500">숙박</span>
-            <span className="font-medium">{nights}박</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-slate-500">인원</span>
-            <span className="font-medium">{guestCount}명</span>
-          </div>
+    <div className="space-y-6 px-5">
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm space-y-2">
+        <div className="flex justify-between">
+          <span className="text-slate-500">체크인</span>
+          <span className="font-medium">{format(checkInDate, "yyyy.MM.dd")}</span>
         </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {isSessionLoading ? (
-            <>
-              <InputSkeleton label="예약자 이름" />
-              <InputSkeleton label="이메일" />
-            </>
-          ) : (
-            <>
-              <Input
-                label="예약자 이름"
-                placeholder="홍길동"
-                error={errors.guestName?.message}
-                {...register("guestName")}
-              />
-              <Input
-                label="이메일"
-                type="email"
-                placeholder="example@email.com"
-                hint="승인/거절 결과를 받을 이메일입니다."
-                error={errors.guestEmail?.message}
-                {...register("guestEmail")}
-              />
-            </>
-          )}
-
-          <Textarea
-            label="요청사항 (선택)"
-            placeholder="특별한 요청사항이 있으시면 입력해 주세요."
-            rows={3}
-            hint="관리자에게 전달됩니다."
-            error={errors.memo?.message}
-            {...register("memo")}
-          />
-
-          {submitError && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-500">
-              {submitError}
-            </p>
-          )}
-
-          <div className="space-y-2 pt-2">
-            <Button type="submit" fullWidth size="lg" loading={isSubmitting} disabled={isSessionLoading}>
-              예약 신청하기
-            </Button>
-            <Button type="button" variant="ghost" fullWidth onClick={() => router.back()}>
-              이전으로
-            </Button>
-          </div>
-        </form>
-
-        <p className="pb-4 text-center text-xs text-slate-400">
-          예약 신청 후 관리자 승인 시 확정됩니다.
-          <br />
-          승인/거절 결과는 이메일로 안내드립니다.
-        </p>
+        <div className="flex justify-between">
+          <span className="text-slate-500">체크아웃</span>
+          <span className="font-medium">{format(checkOutDate, "yyyy.MM.dd")}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-slate-500">숙박</span>
+          <span className="font-medium">{nights}박</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-slate-500">인원</span>
+          <span className="font-medium">{guestCount}명</span>
+        </div>
       </div>
-    </>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <Input
+          label="예약자 이름"
+          placeholder="홍길동"
+          error={errors.guestName?.message}
+          {...register("guestName")}
+        />
+        <Input
+          label="이메일"
+          type="email"
+          placeholder="example@email.com"
+          hint="승인/거절 결과를 받을 이메일입니다."
+          error={errors.guestEmail?.message}
+          {...register("guestEmail")}
+        />
+        <Textarea
+          label="요청사항 (선택)"
+          placeholder="특별한 요청사항이 있으시면 입력해 주세요."
+          rows={3}
+          hint="관리자에게 전달됩니다."
+          error={errors.memo?.message}
+          {...register("memo")}
+        />
+
+        {submitError && (
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-500">
+            {submitError}
+          </p>
+        )}
+
+        <div className="space-y-2 pt-2">
+          <Button type="submit" fullWidth size="lg" loading={isSubmitting}>
+            예약 신청하기
+          </Button>
+          <Button type="button" variant="ghost" fullWidth onClick={() => router.back()}>
+            이전으로
+          </Button>
+        </div>
+      </form>
+
+      <p className="pb-4 text-center text-xs text-slate-400">
+        예약 신청 후 관리자 승인 시 확정됩니다.
+        <br />
+        승인/거절 결과는 이메일로 안내드립니다.
+      </p>
+    </div>
   );
 }

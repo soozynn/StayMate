@@ -214,11 +214,47 @@ export async function listReservations(options?: {
     filter.status = options.status;
   }
 
-  const reservations = await ReservationModel.find(filter)
+  type LeanDoc = {
+    _id: Types.ObjectId;
+    userId: Types.ObjectId;
+    guestName: string;
+    guestEmail: string;
+    guestCount: number;
+    checkIn: Date;
+    checkOut: Date;
+    memo?: string;
+    status: string;
+    adminNote?: string;
+    reviewedAt?: Date;
+    reviewedBy?: string;
+    reviewSource?: string;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+
+  const raw = await ReservationModel.find(filter)
+    .select("-actionTokenHash -actionTokenExpiresAt")
     .sort({ createdAt: -1 })
+    .lean<LeanDoc[]>()
     .exec();
 
-  return reservations.map(serializeReservation);
+  return raw.map<SerializedReservation>((r) => ({
+    id: r._id.toString(),
+    userId: r.userId.toString(),
+    guestName: r.guestName,
+    guestEmail: r.guestEmail,
+    guestCount: r.guestCount,
+    checkIn: r.checkIn.toISOString(),
+    checkOut: r.checkOut.toISOString(),
+    memo: r.memo || undefined,
+    status: r.status as ReservationStatus,
+    adminNote: r.adminNote || undefined,
+    reviewedAt: r.reviewedAt?.toISOString(),
+    reviewedBy: r.reviewedBy || undefined,
+    reviewSource: (r.reviewSource as "email" | "admin" | null) || undefined,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
+  }));
 }
 
 export async function updateStatus(

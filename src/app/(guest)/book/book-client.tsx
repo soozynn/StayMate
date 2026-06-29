@@ -1,8 +1,9 @@
 "use client";
 
-import { format } from "date-fns";
+import { addMonths, format, startOfDay } from "date-fns";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type { DateRange } from "react-day-picker";
 
 import { DateRangePicker } from "@/components/booking/date-range-picker";
@@ -10,10 +11,30 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import type { BlockedRange } from "@/lib/services/availability.service";
 
-export function BookClient({ blockedRanges }: { blockedRanges: BlockedRange[] }) {
+async function fetchBlockedRanges(from: Date, to: Date): Promise<BlockedRange[]> {
+  const params = new URLSearchParams({
+    from: from.toISOString(),
+    to: to.toISOString(),
+  });
+  const res = await fetch(`/api/reservations/availability?${params}`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.blockedRanges;
+}
+
+export function BookClient() {
   const router = useRouter();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [guestCount, setGuestCount] = useState(1);
+
+  const from = useMemo(() => startOfDay(new Date()), []);
+  const to = useMemo(() => addMonths(from, 3), [from]);
+
+  const { data: blockedRanges = [] } = useQuery({
+    queryKey: ["blockedRanges", format(from, "yyyy-MM-dd")],
+    queryFn: () => fetchBlockedRanges(from, to),
+    staleTime: 60 * 1000,
+  });
 
   const canProceed = Boolean(
     dateRange?.from && dateRange?.to && dateRange.from < dateRange.to,

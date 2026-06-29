@@ -1,6 +1,6 @@
 "use client";
 
-import { addDays, format, startOfDay } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { ko } from "date-fns/locale";
 import { useMemo } from "react";
 import { DayPicker, useDayPicker, type DateRange, type MonthCaptionProps } from "react-day-picker";
@@ -79,10 +79,12 @@ export function DateRangePicker({
   const pendingRanges = useMemo(() => parsed.filter((r) => r.status === "pending"), [parsed]);
   const approvedRanges = useMemo(() => parsed.filter((r) => r.status === "approved"), [parsed]);
 
-  const isPickingEnd = Boolean(value?.from && !value?.to);
+  // 체크인이 선택된 순간부터 checkout phase disabled 규칙 고정
+  // — range 완성 여부와 무관하게 nextBlockCheckIn 경계를 항상 유지
+  const isPickingEnd = Boolean(value?.from);
 
   const disabledDays = useMemo(() => {
-    // 체크아웃 선택 단계
+    // 체크인이 선택된 단계 (체크아웃 미선택/선택 모두 포함)
     if (isPickingEnd && value?.from) {
       const from = startOfDay(value.from);
 
@@ -93,14 +95,14 @@ export function DateRangePicker({
         .sort((a, b) => a.getTime() - b.getTime())[0];
 
       return [
-        { before: from }, // from 자체는 활성 — 클릭 시 선택 해제 가능
+        { before: from }, // from 자체는 활성 — 클릭 시 체크인 해제 가능
         ...(nextBlockCheckIn
           ? [(date: Date) => startOfDay(date) > nextBlockCheckIn]
           : []),
       ];
     }
 
-    // 체크인 선택 단계: pending checkIn 날짜 + 모든 예약 내부 날짜 차단
+    // 체크인 미선택 단계: pending checkIn 날짜 + 모든 예약 내부 날짜 차단
     return [
       { before: today },
       (date: Date) => inRangeInterior(date, parsed),
@@ -123,6 +125,11 @@ export function DateRangePicker({
         onChange(undefined);
         return;
       }
+      // 이미 선택된 체크아웃 날짜를 다시 클릭 → 체크아웃만 해제
+      if (value?.to && from.getTime() === startOfDay(value.to).getTime()) {
+        onChange({ from: value.from, to: undefined });
+        return;
+      }
       // 예약된 checkIn 날짜 클릭 → 선택 불가
       if (parsed.some((r) => from.getTime() === r.checkIn.getTime())) {
         onChange(undefined);
@@ -133,6 +140,11 @@ export function DateRangePicker({
     }
 
     if (from && !to) {
+      // 이미 선택된 체크아웃 날짜를 다시 클릭 → 체크아웃만 해제
+      if (value?.to && from.getTime() === startOfDay(value.to).getTime()) {
+        onChange({ from: value.from, to: undefined });
+        return;
+      }
       // 예약된 checkIn 날짜를 새 예약의 시작일로 선택하는 것을 차단
       if (parsed.some((r) => from.getTime() === r.checkIn.getTime())) {
         onChange(undefined);

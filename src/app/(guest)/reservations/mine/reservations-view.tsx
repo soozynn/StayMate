@@ -1,28 +1,52 @@
 "use client";
 
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { useState } from "react";
 
 import { StatusBadge } from "@/components/ui/badge";
 import type { SerializedReservation } from "@/lib/services/reservation.service";
+import { cancelReservationAction } from "./actions";
 
-export function ReservationsView({
-  initialReservations,
-}: {
-  initialReservations: SerializedReservation[];
-}) {
-  const [reservations, setReservations] = useState(initialReservations);
+async function fetchMyReservations(): Promise<SerializedReservation[]> {
+  const res = await fetch("/api/reservations/mine");
+  if (!res.ok) throw new Error("Failed to fetch");
+  const data = await res.json();
+  return data.reservations;
+}
+
+function ReservationsSkeleton() {
+  return (
+    <div className="space-y-3">
+      {[1, 2].map((i) => (
+        <div
+          key={i}
+          className="h-28 w-full animate-pulse rounded-2xl border border-slate-100 bg-slate-100"
+        />
+      ))}
+    </div>
+  );
+}
+
+export function ReservationsView() {
+  const queryClient = useQueryClient();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
+
+  const { data: reservations = [], isLoading } = useQuery({
+    queryKey: ["reservations", "mine"],
+    queryFn: fetchMyReservations,
+  });
 
   async function handleCancel(id: string) {
     setCancellingId(id);
     try {
-      const res = await fetch(`/api/reservations/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error();
-      setReservations((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, status: "cancelled" as const } : r)),
+      await cancelReservationAction(id);
+      queryClient.setQueryData(
+        ["reservations", "mine"],
+        (prev: SerializedReservation[] = []) =>
+          prev.map((r) => (r.id === id ? { ...r, status: "cancelled" as const } : r)),
       );
     } catch {
       alert("취소 처리 중 오류가 발생했습니다. 다시 시도해주세요.");
@@ -31,6 +55,8 @@ export function ReservationsView({
       setConfirmId(null);
     }
   }
+
+  if (isLoading) return <ReservationsSkeleton />;
 
   const active = reservations.filter(
     (r) => r.status === "pending" || r.status === "approved",

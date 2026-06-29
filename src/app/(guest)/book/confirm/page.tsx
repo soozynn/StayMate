@@ -1,17 +1,30 @@
-import { Suspense } from "react";
+import { auth } from "@/auth";
+import { PageHeader } from "@/components/layout/page-header";
+import { BookConfirmForm } from "./confirm-content";
 
-import { BookConfirmContent } from "./confirm-content";
+type SearchParams = Promise<{
+  checkIn?: string;
+  checkOut?: string;
+  guestCount?: string;
+}>;
 
-export default function BookConfirmPage() {
+export default async function BookConfirmPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const [session, params] = await Promise.all([auth(), searchParams]);
+
   return (
-    <Suspense
-      fallback={
-        <div className="flex h-dvh items-center justify-center">
-          <span className="h-6 w-6 animate-spin rounded-full border-2 border-slate-900 border-t-transparent" />
-        </div>
-      }
-    >
-      <BookConfirmContent />
-    </Suspense>
+    <>
+      <PageHeader subtitle="예약 확인" title="예약 정보 입력" />
+      <BookConfirmForm
+        checkIn={params.checkIn}
+        checkOut={params.checkOut}
+        guestCount={params.guestCount}
+        defaultName={session?.user?.name ?? ""}
+        defaultEmail={session?.user?.email ?? ""}
+      />
+    </>
   );
 }

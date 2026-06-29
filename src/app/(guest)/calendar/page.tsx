@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { getBlockedRanges } from "@/lib/services/availability.service";
 import { CalendarView } from "./calendar-view";
 
-export const revalidate = 60;
+export const revalidate = 10;
 
 async function CalendarContent() {
   const from = startOfDay(new Date());
