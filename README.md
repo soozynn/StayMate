@@ -2,6 +2,8 @@
 
 개인 게스트하우스 숙박 예약을 위한 웹 애플리케이션입니다.
 
+**배포 URL:** [https://stay-mate-delta.vercel.app](https://stay-mate-delta.vercel.app)
+
 ## 주요 기능
 
 - **소셜 로그인** — Google, Kakao, Naver OAuth 지원
@@ -29,7 +31,7 @@
 cp .env.example .env
 ```
 
-`.env`에 아래 값을 채워주세요.
+`.env`에 아래 값을 채워주세요. (로컬 개발용 — Vercel 배포 시에는 Vercel 대시보드 Environment Variables에서 별도 입력)
 
 | 변수 | 설명 |
 |------|------|
@@ -37,6 +39,7 @@ cp .env.example .env
 | `MONGODB_DB` | 데이터베이스 이름 |
 | `ADMIN_EMAILS` | 관리자 이메일 (쉼표로 여러 개 가능) |
 | `AUTH_SECRET` | Auth.js 서명 키 (`npx auth secret`으로 생성) |
+| `AUTH_URL` | 로컬: `http://localhost:3000` / 배포: `https://stay-mate-delta.vercel.app` |
 | `GOOGLE_CLIENT_ID/SECRET` | Google OAuth 앱 자격증명 |
 | `KAKAO_CLIENT_ID/SECRET` | Kakao 개발자 앱 자격증명 |
 | `NAVER_CLIENT_ID/SECRET` | Naver 개발자 앱 자격증명 |
@@ -54,11 +57,11 @@ pnpm dev
 
 ## 배포
 
-Vercel에 배포 시 위 환경 변수를 Vercel 프로젝트 설정에 추가하고,  
-각 OAuth 앱의 콜백 URL을 배포 도메인으로 업데이트해야 합니다.
+Vercel에 배포 시 위 환경 변수를 Vercel 프로젝트 Settings → Environment Variables에 추가하고,
+각 OAuth 앱의 콜백 URL을 아래와 같이 등록해야 합니다.
 
-| 서비스 | 콜백 URL |
-|--------|----------|
-| Google | `https://your-domain.com/api/auth/callback/google` |
-| Kakao | `https://your-domain.com/api/auth/callback/kakao` |
-| Naver | `https://your-domain.com/api/auth/callback/naver` |
+| 서비스 | 등록할 콜백 URL |
+|--------|----------------|
+| Google | `https://stay-mate-delta.vercel.app/api/auth/callback/google` |
+| Kakao | `https://stay-mate-delta.vercel.app/api/auth/callback/kakao` |
+| Naver | `https://stay-mate-delta.vercel.app/api/auth/callback/naver` |
