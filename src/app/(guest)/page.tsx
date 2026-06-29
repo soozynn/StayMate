@@ -1,13 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { ProfileButton } from "@/components/auth/profile-button";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 
 export default function HomePage() {
   return (
     <>
-      <PageHeader subtitle="StayMate" title="Sujin's Home Stay" />
+      <PageHeader subtitle="StayMate" title="Sujin's Home Stay" right={<ProfileButton />} />
 
       {/* 숙소 이미지 */}
       <div className="mx-5 mb-6 h-52 overflow-hidden rounded-2xl bg-slate-100 relative">
@@ -15,6 +16,7 @@ export default function HomePage() {
           src="/hero.jpg"
           alt="고덕 온빛채 아파트 전경"
           fill
+          sizes="(max-width: 768px) 100vw, 768px"
           className="object-cover"
           priority
         />
@@ -25,7 +27,9 @@ export default function HomePage() {
           <div>
             <h2 className="mb-1 text-lg font-bold text-slate-900">숙소 소개</h2>
             <p className="text-sm leading-relaxed text-slate-500">
-              여유로운 시간을 보낼 수 있는 아늑한 공간, Sujin&apos;s Home Stay입니다.{" "}
+              여유로운 시간을 보낼 수 있는 아늑한 공간,{" "}
+              <br />
+              Sujin&apos;s Home Stay입니다.
               <br />
               원하시는 날짜의 숙박 일자를 예약해주세요.
             </p>

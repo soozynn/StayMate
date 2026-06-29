@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const reservation = await createReservation({
       ...input,
       userId: session.user.id,
-      guestEmail: session.user.email,
+      guestEmail: input.guestEmail || session.user.email,
     });
 
     return NextResponse.json({ reservation }, { status: 201 });

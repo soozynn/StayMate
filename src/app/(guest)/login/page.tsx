@@ -9,10 +9,7 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ callbackUrl?: string }>;
 }) {
-  const [session, { callbackUrl }] = await Promise.all([
-    auth(),
-    searchParams,
-  ]);
+  const [session, { callbackUrl }] = await Promise.all([auth(), searchParams]);
 
   if (session) {
     // 외부 URL로의 오픈 리다이렉트 방지

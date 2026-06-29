@@ -1,7 +1,8 @@
 "use client";
 
-import { addDays, format, startOfDay } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { ko } from "date-fns/locale";
+import { useMemo } from "react";
 import { DayPicker, useDayPicker, type DateRange, type MonthCaptionProps } from "react-day-picker";
 import "react-day-picker/style.css";
 
@@ -45,12 +46,10 @@ type DateRangePickerProps = {
   onChange: (range: DateRange | undefined) => void;
 };
 
-function isDateInBlockedRange(date: Date, ranges: BlockedRange[]): boolean {
-  return ranges.some((range) => {
-    const checkIn = new Date(range.checkIn);
-    const checkOut = new Date(range.checkOut);
-    return date >= checkIn && date < checkOut;
-  });
+type ParsedRange = { checkIn: Date; checkOut: Date; status: "pending" | "approved" };
+
+function inRange(date: Date, ranges: ParsedRange[]): boolean {
+  return ranges.some((r) => date >= r.checkIn && date < r.checkOut);
 }
 
 export function DateRangePicker({
@@ -60,29 +59,33 @@ export function DateRangePicker({
 }: DateRangePickerProps) {
   const today = startOfDay(new Date());
 
-  const disabledDays = [
-    { before: today },
-    (date: Date) => isDateInBlockedRange(date, blockedRanges),
-  ];
+  // Date 객체 변환을 한 번만 수행
+  const parsed = useMemo<ParsedRange[]>(
+    () =>
+      blockedRanges.map((r) => ({
+        checkIn: new Date(r.checkIn),
+        checkOut: new Date(r.checkOut),
+        status: r.status,
+      })),
+    [blockedRanges],
+  );
 
-  const modifiers = {
-    pending: (date: Date) =>
-      blockedRanges
-        .filter((r) => r.status === "pending")
-        .some((range) => {
-          const checkIn = new Date(range.checkIn);
-          const checkOut = new Date(range.checkOut);
-          return date >= checkIn && date < checkOut;
-        }),
-    approved: (date: Date) =>
-      blockedRanges
-        .filter((r) => r.status === "approved")
-        .some((range) => {
-          const checkIn = new Date(range.checkIn);
-          const checkOut = new Date(range.checkOut);
-          return date >= checkIn && date < checkOut;
-        }),
-  };
+  const pendingRanges = useMemo(() => parsed.filter((r) => r.status === "pending"), [parsed]);
+  const approvedRanges = useMemo(() => parsed.filter((r) => r.status === "approved"), [parsed]);
+
+  const disabledDays = useMemo(
+    () => [{ before: today }, (date: Date) => inRange(date, parsed)],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [parsed],
+  );
+
+  const modifiers = useMemo(
+    () => ({
+      pending: (date: Date) => inRange(date, pendingRanges),
+      approved: (date: Date) => inRange(date, approvedRanges),
+    }),
+    [pendingRanges, approvedRanges],
+  );
 
   return (
     <div className="flex flex-col gap-3">
@@ -97,6 +100,7 @@ export function DateRangePicker({
           pending: "day--pending",
           approved: "day--approved",
         }}
+        hideNavigation
         components={{ MonthCaption }}
         classNames={{
           root: "w-full",

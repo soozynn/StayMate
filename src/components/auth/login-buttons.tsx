@@ -61,7 +61,7 @@ const providers = [
 
 export function LoginButtons() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/book/confirm";
+  const callbackUrl = searchParams.get("callbackUrl") ?? "/";
 
   return (
     <div className="flex w-full flex-col gap-3">

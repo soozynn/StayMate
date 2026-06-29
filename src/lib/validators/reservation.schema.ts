@@ -12,6 +12,7 @@ export const reviewSourceSchema = z.enum(REVIEW_SOURCES);
 
 const createReservationBaseSchema = z.object({
   guestName: z.string().trim().min(1).max(50),
+  guestEmail: z.string().trim().email("올바른 이메일 형식을 입력해주세요").max(254).optional(),
   guestCount: z.coerce.number().int().min(1).max(3),
   checkIn: dateLikeSchema,
   checkOut: dateLikeSchema,

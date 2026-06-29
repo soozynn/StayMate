@@ -62,9 +62,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth(() => {
       signIn: "/login",
     },
     callbacks: {
-      jwt({ token, user }) {
+      jwt({ token, user, profile, trigger }) {
         if (user?.id) {
           token.sub = user.id;
+        }
+
+        // 로그인 시 현재 OAuth provider의 profile 데이터로 덮어씀
+        // MongoDBAdapter가 계정을 연결할 때 DB의 기존 유저(최초 provider) 데이터를 쓰는 문제 방지
+        if (trigger === "signIn") {
+          const email = profile?.email ?? user?.email;
+          const name = profile?.name ?? user?.name;
+          if (email) token.email = email;
+          if (name) token.name = name;
         }
 
         token.role = isAdminEmail(token.email) ? "admin" : "user";
