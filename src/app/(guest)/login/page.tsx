@@ -1,8 +1,26 @@
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
+import { auth } from "@/auth";
 import { LoginButtons } from "@/components/auth/login-buttons";
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ callbackUrl?: string }>;
+}) {
+  const [session, { callbackUrl }] = await Promise.all([
+    auth(),
+    searchParams,
+  ]);
+
+  if (session) {
+    // 외부 URL로의 오픈 리다이렉트 방지
+    const destination =
+      callbackUrl && callbackUrl.startsWith("/") ? callbackUrl : "/";
+    redirect(destination);
+  }
+
   return (
     <main className="flex min-h-dvh items-center justify-center bg-zinc-50 px-5 py-10">
       <section className="w-full max-w-sm">
