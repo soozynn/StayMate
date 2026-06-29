@@ -6,8 +6,8 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     staleTimes: {
-      dynamic: 0,  // 동적 페이지: 라우터 캐시 없음 — 항상 서버에서 최신 데이터
-      static: 60,  // ISR 페이지: 60초 (revalidatePath 호출 시 즉시 무효화)
+      dynamic: 0,  // 동적 페이지: 클라이언트 캐시 없음
+      static: 0,   // ISR 페이지: 항상 서버에서 확인 — 업데이트 있으면 즉시 반영
     },
   },
 };
