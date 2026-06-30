@@ -20,7 +20,7 @@
 | 인증 | Auth.js v5 (next-auth) |
 | 데이터베이스 | MongoDB Atlas + MongoDBAdapter |
 | 스타일 | Tailwind CSS |
-| 이메일 | SMTP (Resend) |
+| 이메일 | SMTP (Gmail) |
 | 패키지 매니저 | pnpm |
 
 ## 시작하기
