@@ -23,6 +23,16 @@
 | 이메일 | SMTP (Gmail) |
 | 패키지 매니저 | pnpm |
 
+## 페이지별 렌더링 전략
+
+| 페이지 | 전략 | 이유 |
+|--------|------|------|
+| 홈 (`/`) | 완전 정적 | 모든 유저에게 동일한 콘텐츠, fetch 없음 → CDN 즉각 응답 |
+| 예약 현황 (`/calendar`) | ISR (revalidate=10) | 공용 데이터, 예약 변경 후 10초 내 갱신 |
+| 예약하기 (`/book`) | 정적 shell + React Query | 취소 후 즉각 반영 필요, ISR TTL 대기 없이 캐시 무효화 |
+| 예약 확인 (`/book/confirm`) | SSR (async Server Component) | 세션에서 이름·이메일 읽어 폼 pre-fill, 로딩 깜빡임 없음 |
+| 내 예약 (`/reservations/mine`) | Suspense streaming + 스켈레톤 | 유저별 데이터라 ISR 불가, 헤더 즉시 표시 후 데이터 스트리밍 |
+
 ## 시작하기
 
 ### 1. 환경 변수 설정
@@ -43,8 +53,9 @@ cp .env.example .env
 | `GOOGLE_CLIENT_ID/SECRET` | Google OAuth 앱 자격증명 |
 | `KAKAO_CLIENT_ID/SECRET` | Kakao 개발자 앱 자격증명 |
 | `NAVER_CLIENT_ID/SECRET` | Naver 개발자 앱 자격증명 |
-| `SMTP_*` | SMTP 서버 정보 (Resend 권장) |
+| `SMTP_*` | SMTP 서버 정보 (Gmail) |
 | `MAIL_FROM` | 발신 이메일 주소 |
+| `PROPERTY_ADDRESS` | 예약 확정 이메일에 포함될 숙소 주소 |
 
 ### 2. 의존성 설치 및 실행
 
