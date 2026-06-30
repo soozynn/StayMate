@@ -28,11 +28,10 @@ function maskName(name: string): string {
   return name[0] + "*".repeat(name.length - 2) + name[name.length - 1];
 }
 
-function getNightsLabel(checkIn: string, checkOut: string): string {
-  const nights = Math.round(
+function getNights(checkIn: string, checkOut: string): number {
+  return Math.round(
     (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24),
   );
-  return `${nights}박 ${nights + 1}일`;
 }
 
 function inRange(date: Date, ranges: ParsedRange[]) {
@@ -63,10 +62,10 @@ export function CalendarView({ blockedRanges }: { blockedRanges: BlockedRange[] 
 
   const modifiers = useMemo(
     () => ({
-      pendingStart:  (d: Date) => { const day = startOfDay(d); return isStart(day, pending) && !isEnd(day, pending); },
-      pendingEnd:    (d: Date) => { const day = startOfDay(d); return isEnd(day, pending) && !isStart(day, pending); },
-      pendingSingle: (d: Date) => { const day = startOfDay(d); return isStart(day, pending) && isEnd(day, pending); },
-      pendingMiddle: (d: Date) => { const day = startOfDay(d); return inRange(day, pending) && !isStart(day, pending) && !isEnd(day, pending); },
+      pendingStart:   (d: Date) => { const day = startOfDay(d); return isStart(day, pending) && !isEnd(day, pending); },
+      pendingEnd:     (d: Date) => { const day = startOfDay(d); return isEnd(day, pending) && !isStart(day, pending); },
+      pendingSingle:  (d: Date) => { const day = startOfDay(d); return isStart(day, pending) && isEnd(day, pending); },
+      pendingMiddle:  (d: Date) => { const day = startOfDay(d); return inRange(day, pending) && !isStart(day, pending) && !isEnd(day, pending); },
       approvedStart:  (d: Date) => { const day = startOfDay(d); return isStart(day, approved) && !isEnd(day, approved); },
       approvedEnd:    (d: Date) => { const day = startOfDay(d); return isEnd(day, approved) && !isStart(day, approved); },
       approvedSingle: (d: Date) => { const day = startOfDay(d); return isStart(day, approved) && isEnd(day, approved); },
@@ -77,16 +76,40 @@ export function CalendarView({ blockedRanges }: { blockedRanges: BlockedRange[] 
 
   return (
     <div className="px-5">
+      {/* 안내 문구 */}
+      <div className="mb-4 flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+          <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+          <line x1="16" x2="16" y1="2" y2="6" />
+          <line x1="8" x2="8" y1="2" y2="6" />
+          <line x1="3" x2="21" y1="10" y2="10" />
+        </svg>
+        <p className="text-xs text-slate-400">오늘부터 6개월 이내의 예약 현황을 보여드립니다.</p>
+      </div>
+
+      {/* 범례 */}
+      <div className="mb-3 flex items-center gap-4 text-xs text-slate-400">
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+          승인 대기
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+          예약 확정
+        </span>
+      </div>
+
+      {/* 달력 */}
       <DayPicker
         mode="multiple"
         locale={ko}
-        numberOfMonths={2}
+        numberOfMonths={1}
         modifiers={modifiers}
         modifiersClassNames={{
-          pendingStart:  "cal-pending-start",
-          pendingEnd:    "cal-pending-end",
-          pendingSingle: "cal-pending-single",
-          pendingMiddle: "cal-pending-middle",
+          pendingStart:   "cal-pending-start",
+          pendingEnd:     "cal-pending-end",
+          pendingSingle:  "cal-pending-single",
+          pendingMiddle:  "cal-pending-middle",
           approvedStart:  "cal-approved-start",
           approvedEnd:    "cal-approved-end",
           approvedSingle: "cal-approved-single",
@@ -94,14 +117,14 @@ export function CalendarView({ blockedRanges }: { blockedRanges: BlockedRange[] 
         }}
         classNames={{
           root: "w-full",
-          months: "flex flex-col gap-6 w-full",
+          months: "w-full",
           month: "w-full",
           month_grid: "w-full",
-          month_caption: "flex items-center justify-between px-2 py-2",
+          month_caption: "flex items-center justify-between px-1 py-2",
           caption_label: "text-sm font-semibold text-slate-900",
           nav: "flex items-center gap-1",
-          button_previous: "h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-100",
-          button_next:     "h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-100",
+          button_previous: "h-8 w-8 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-500",
+          button_next: "h-8 w-8 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-500",
           weekdays: "flex",
           weekday: "flex-1 text-center text-xs font-medium text-slate-400 py-2",
           week: "flex mt-1",
@@ -112,38 +135,16 @@ export function CalendarView({ blockedRanges }: { blockedRanges: BlockedRange[] 
         }}
       />
 
-      <div className="mt-4 flex items-center gap-4 text-xs text-slate-400">
-        <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-sm bg-amber-300" />
-          승인 대기
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-sm bg-slate-300" />
-          예약 확정
-        </span>
-      </div>
-
+      {/* 예약 목록 */}
       {blockedRanges.length > 0 && (
-        <div className="mt-6">
-          <h2 className="mb-3 text-sm font-semibold text-slate-900">예약 목록</h2>
-          <div className="space-y-2">
+        <div className="mt-2">
+          <hr className="mb-4 border-slate-100" />
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            예약 목록
+          </h2>
+          <div className="space-y-3">
             {blockedRanges.map((range) => (
-              <div
-                key={range.id}
-                className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3"
-              >
-                <div>
-                  <p className="text-sm font-medium text-slate-900">
-                    {format(new Date(range.checkIn), "MM.dd")} –{" "}
-                    {format(new Date(range.checkOut), "MM.dd")}
-                    <span className="ml-1.5 text-xs font-normal text-slate-400">
-                      {getNightsLabel(range.checkIn, range.checkOut)}
-                    </span>
-                  </p>
-                  <p className="mt-0.5 text-xs text-slate-400">{maskName(range.guestName)}</p>
-                </div>
-                <StatusBadge status={range.status} />
-              </div>
+              <ReservationListCard key={range.id} range={range} />
             ))}
           </div>
         </div>
@@ -169,6 +170,37 @@ export function CalendarView({ blockedRanges }: { blockedRanges: BlockedRange[] 
         .cal-approved-end button { background-color: #94a3b8 !important; color: #fff !important; border-radius: 9999px; }
         .cal-approved-single button { background-color: #94a3b8 !important; color: #fff !important; border-radius: 9999px; }
       `}</style>
+    </div>
+  );
+}
+
+function ReservationListCard({ range }: { range: BlockedRange }) {
+  const checkIn = new Date(range.checkIn);
+  const checkOut = new Date(range.checkOut);
+  const nights = getNights(range.checkIn, range.checkOut);
+
+  return (
+    <div className="rounded-2xl border border-slate-200 px-4 py-4">
+      <div className="mb-3 flex items-center justify-between">
+        <StatusBadge status={range.status} />
+        <span className="text-xs text-slate-400">{nights}박</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="flex-1 rounded-xl bg-slate-50 px-3 py-2.5">
+          <p className="mb-0.5 text-xs text-slate-400">체크인</p>
+          <p className="text-sm font-medium text-slate-900">
+            {format(checkIn, "M월 d일 (EEE)", { locale: ko })}
+          </p>
+        </div>
+        <span className="text-sm text-slate-300">→</span>
+        <div className="flex-1 rounded-xl bg-slate-50 px-3 py-2.5">
+          <p className="mb-0.5 text-xs text-slate-400">체크아웃</p>
+          <p className="text-sm font-medium text-slate-900">
+            {format(checkOut, "M월 d일 (EEE)", { locale: ko })}
+          </p>
+        </div>
+      </div>
+      <p className="mt-2.5 text-xs text-slate-400">{maskName(range.guestName)} 님</p>
     </div>
   );
 }
