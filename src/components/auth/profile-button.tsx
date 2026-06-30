@@ -1,8 +1,11 @@
-import { auth } from "@/auth";
+"use client";
+
+import { useSession } from "next-auth/react";
+
 import { ProfileAvatar } from "./profile-avatar";
 
-export async function ProfileButton() {
-  const session = await auth();
+export function ProfileButton() {
+  const { data: session } = useSession();
 
   return (
     <ProfileAvatar
