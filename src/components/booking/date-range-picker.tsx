@@ -2,9 +2,46 @@
 
 import { addMonths, format, getDaysInMonth, startOfDay } from "date-fns";
 import { ko } from "date-fns/locale";
+import type { ComponentProps } from "react";
 import { useMemo, useState } from "react";
-import { DayPicker, useDayPicker, type DateRange, type MonthCaptionProps } from "react-day-picker";
+import { DayButton, DayPicker, useDayPicker, type DateRange, type MonthCaptionProps } from "react-day-picker";
 import "react-day-picker/style.css";
+
+type BandDayButtonProps = ComponentProps<typeof DayButton>;
+
+function BandDayButton({ day, modifiers, ...props }: BandDayButtonProps) {
+  const isStart = Boolean(modifiers.range_start) && !Boolean(modifiers.range_end);
+  const isEnd = Boolean(modifiers.range_end) && !Boolean(modifiers.range_start);
+  const isMiddle = Boolean(modifiers.range_middle);
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        height: "2.25rem",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {(isStart || isMiddle || isEnd) && (
+        <span
+          style={{
+            position: "absolute",
+            top: 3,
+            bottom: 3,
+            left: isStart ? "50%" : 0,
+            right: isEnd ? "50%" : 0,
+            background: "#e2e8f0",
+            pointerEvents: "none",
+          }}
+        />
+      )}
+      <DayButton day={day} modifiers={modifiers} {...props} />
+    </div>
+  );
+}
 
 function MonthCaption({ calendarMonth }: MonthCaptionProps) {
   const { goToMonth, previousMonth, nextMonth } = useDayPicker();
@@ -195,7 +232,7 @@ export function DateRangePicker({
           approved: "day--approved",
         }}
         hideNavigation
-        components={{ MonthCaption }}
+        components={{ MonthCaption, DayButton: BandDayButton }}
         classNames={{
           root: "w-full",
           months: "w-full",
@@ -230,33 +267,39 @@ export function DateRangePicker({
       </div>
 
       <style>{`
-        /* 범위 중간 날짜 — 연한 회색 배경 */
+        /* 시작/끝 버튼: 검정 원 */
+        .day--range-start button,
+        .day--range-end button {
+          position: relative;
+          z-index: 1;
+          background-color: #0f172a !important;
+          color: #ffffff !important;
+          border-radius: 9999px !important;
+        }
+
+        /* 중간 버튼: 투명, 전체 너비 */
         .day--range-middle button {
-          background-color: #e2e8f0 !important;
+          position: relative;
+          z-index: 1;
+          background: transparent !important;
           color: #0f172a !important;
           border-radius: 0 !important;
-          width: 100%;
+          width: 100% !important;
+          transition: none !important;
         }
+        .day--range-middle button:hover { background: transparent !important; }
 
-        /* 시작/끝에서 중간 배경 연결 */
-        .day--range-start:not(.day--range-end) {
-          background: linear-gradient(to right, transparent 50%, #e2e8f0 50%);
-        }
-        .day--range-end:not(.day--range-start) {
-          background: linear-gradient(to left, transparent 50%, #e2e8f0 50%);
-        }
-
-        /* pending — 노란 배경 + 회색 텍스트 (항상) */
+        /* pending — 노란 배경 + 회색 텍스트 */
         .day--pending button {
           background-color: #fde68a !important;
           color: #9ca3af !important;
           opacity: 1 !important;
         }
-        /* pending이면서 실제 disabled일 때만 취소선 + not-allowed */
         .day--pending button:disabled {
           text-decoration: line-through !important;
           cursor: not-allowed !important;
         }
+
         /* approved — 회색 배경 + 취소선 */
         .day--approved button {
           background-color: #e2e8f0 !important;
@@ -264,16 +307,7 @@ export function DateRangePicker({
           text-decoration: line-through;
         }
 
-        /* 선택된 날짜 시작/끝 — pending/approved보다 나중에 정의해서 항상 우선 */
-        .day--range-start button,
-        .day--range-end button {
-          background-color: #0f172a !important;
-          color: #ffffff !important;
-          border-radius: 9999px;
-        }
-
-        /* 체크인만 선택 시 (체크아웃 미선택): react-day-picker가 range_start를 미적용
-           — day--selected만 있는 경우 직접 검정 원 표시 */
+        /* 체크인만 선택 시 */
         .day--selected:not(.day--range-start):not(.day--range-middle):not(.day--range-end) button {
           background-color: #0f172a !important;
           color: #ffffff !important;

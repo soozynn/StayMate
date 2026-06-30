@@ -3,10 +3,37 @@
 import { addDays, format, startOfDay } from "date-fns";
 import { ko } from "date-fns/locale";
 import { useMemo } from "react";
-import { DayPicker } from "react-day-picker";
+import { DayPicker, useDayPicker, type MonthCaptionProps } from "react-day-picker";
 import "react-day-picker/style.css";
 
 import { StatusBadge } from "@/components/ui/badge";
+
+function CalendarMonthCaption({ calendarMonth }: MonthCaptionProps) {
+  const { goToMonth, previousMonth, nextMonth } = useDayPicker();
+  return (
+    <div className="flex items-center justify-between px-2 py-2">
+      <button
+        type="button"
+        disabled={!previousMonth}
+        onClick={() => previousMonth && goToMonth(previousMonth)}
+        className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-30"
+      >
+        ‹
+      </button>
+      <span className="text-sm font-semibold text-slate-900">
+        {format(calendarMonth.date, "yyyy년 M월", { locale: ko })}
+      </span>
+      <button
+        type="button"
+        disabled={!nextMonth}
+        onClick={() => nextMonth && goToMonth(nextMonth)}
+        className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-30"
+      >
+        ›
+      </button>
+    </div>
+  );
+}
 
 type BlockedRange = {
   id: string;
@@ -115,16 +142,13 @@ export function CalendarView({ blockedRanges }: { blockedRanges: BlockedRange[] 
           approvedSingle: "cal-approved-single",
           approvedMiddle: "cal-approved-middle",
         }}
+        hideNavigation
+        components={{ MonthCaption: CalendarMonthCaption }}
         classNames={{
           root: "w-full",
           months: "w-full",
           month: "w-full",
           month_grid: "w-full",
-          month_caption: "flex items-center justify-between px-1 py-2",
-          caption_label: "text-sm font-semibold text-slate-900",
-          nav: "flex items-center gap-1",
-          button_previous: "h-8 w-8 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-500",
-          button_next: "h-8 w-8 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-500",
           weekdays: "flex",
           weekday: "flex-1 text-center text-xs font-medium text-slate-400 py-2",
           week: "flex mt-1",

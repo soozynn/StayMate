@@ -1,6 +1,7 @@
 "use client";
 
 import { addMonths, format, startOfDay } from "date-fns";
+import { ko } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -83,12 +84,58 @@ export function BookClient() {
         </div>
 
         <div>
-          <p className="mb-1 text-sm font-medium text-slate-900">
-            체크인 / 체크아웃
+          <p className="mb-3 text-sm font-medium text-slate-900">
+            날짜 선택
           </p>
-          <p className="mb-3 text-xs text-slate-400">
-            달력에서 체크인 날짜를 먼저 선택한 후, 체크아웃 날짜를 선택해주세요.
-          </p>
+
+          {/* 스텝 인디케이터 */}
+          <div className="mb-3 flex items-center">
+            <div className="flex items-center gap-1.5">
+              <div
+                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
+                  dateRange?.from
+                    ? "bg-emerald-500 text-white"
+                    : "bg-indigo-500 text-white"
+                }`}
+              >
+                {dateRange?.from ? "✓" : "1"}
+              </div>
+              <span
+                className={`text-xs font-medium ${
+                  dateRange?.from ? "text-emerald-600" : "text-indigo-600"
+                }`}
+              >
+                체크인
+              </span>
+            </div>
+            <div className="mx-3 h-px w-16 bg-slate-200" />
+            <div className="flex items-center gap-1.5">
+              <div
+                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
+                  dateRange?.to
+                    ? "bg-emerald-500 text-white"
+                    : dateRange?.from
+                      ? "bg-indigo-500 text-white"
+                      : "border border-slate-200 bg-slate-100 text-slate-400"
+                }`}
+              >
+                {dateRange?.to ? "✓" : "2"}
+              </div>
+              <span
+                className={`text-xs font-medium ${
+                  dateRange?.to
+                    ? "text-emerald-600"
+                    : dateRange?.from
+                      ? "text-indigo-600"
+                      : "text-slate-400"
+                }`}
+              >
+                체크아웃
+              </span>
+            </div>
+          </div>
+
+          {/* 체크인 미선택 시 안내 */}
           {!dateRange?.from && (
             <div className="mb-3 flex items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
@@ -101,16 +148,7 @@ export function BookClient() {
               </p>
             </div>
           )}
-          {dateRange?.from && !dateRange?.to && (
-            <div className="mb-3 flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              <p className="text-xs font-medium text-emerald-600">
-                체크인 날짜가 선택됐어요. 이제 체크아웃 날짜를 선택해주세요.
-              </p>
-            </div>
-          )}
+
           <DateRangePicker
             blockedRanges={blockedRanges}
             value={dateRange}
@@ -119,19 +157,25 @@ export function BookClient() {
         </div>
 
         {canProceed && dateRange?.from && dateRange?.to && (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
-            <div className="flex justify-between">
-              <span className="text-slate-500">체크인</span>
-              <span className="font-medium">{format(dateRange.from, "yyyy.MM.dd")}</span>
+          <div className="rounded-2xl border border-slate-200 px-4 py-4">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 rounded-xl bg-slate-50 px-3 py-2.5">
+                <p className="mb-0.5 text-xs text-slate-400">체크인</p>
+                <p className="text-sm font-medium text-slate-900">
+                  {format(dateRange.from, "M월 d일 (EEE)", { locale: ko })}
+                </p>
+              </div>
+              <span className="text-sm text-slate-300">→</span>
+              <div className="flex-1 rounded-xl bg-slate-50 px-3 py-2.5">
+                <p className="mb-0.5 text-xs text-slate-400">체크아웃</p>
+                <p className="text-sm font-medium text-slate-900">
+                  {format(dateRange.to, "M월 d일 (EEE)", { locale: ko })}
+                </p>
+              </div>
             </div>
-            <div className="mt-1.5 flex justify-between">
-              <span className="text-slate-500">체크아웃</span>
-              <span className="font-medium">{format(dateRange.to, "yyyy.MM.dd")}</span>
-            </div>
-            <div className="mt-1.5 flex justify-between">
-              <span className="text-slate-500">인원</span>
-              <span className="font-medium">{guestCount}명</span>
-            </div>
+            <p className="mt-2.5 text-xs text-slate-400">
+              {Math.round((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24))}박 · {guestCount}인
+            </p>
           </div>
         )}
 
