@@ -1,14 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { ProfileButton } from "@/components/auth/profile-button";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 
 export default function HomePage() {
   return (
     <>
-      <PageHeader subtitle="StayMate" title="Sujin's Home Stay" right={<ProfileButton />} />
+      <PageHeader subtitle="StayMate" title="Sujin's Home Stay" />
 
       {/* 숙소 이미지 */}
       <div className="mx-5 mb-6 h-52 overflow-hidden rounded-2xl bg-slate-100 relative">

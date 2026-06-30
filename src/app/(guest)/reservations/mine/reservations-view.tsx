@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import { signOut, useSession } from "next-auth/react";
 import { useState } from "react";
 
 import { StatusBadge } from "@/components/ui/badge";
@@ -22,6 +23,7 @@ export function ReservationsView({
   initialReservations: SerializedReservation[];
 }) {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
@@ -57,16 +59,34 @@ export function ReservationsView({
     (r) => r.status === "rejected" || r.status === "cancelled",
   );
 
-  if (reservations.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <p className="text-sm text-slate-400">예약 내역이 없습니다.</p>
-      </div>
-    );
-  }
+  const initial = session?.user?.name?.charAt(0).toUpperCase() ?? "";
 
   return (
     <>
+      <div className="mb-6 flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
+            {initial}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-slate-900">{session?.user?.name}</p>
+            <p className="truncate text-xs text-slate-400">{session?.user?.email}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => signOut({ callbackUrl: "/" })}
+          className="shrink-0 text-xs font-medium text-slate-400 transition-colors hover:text-red-500"
+        >
+          로그아웃
+        </button>
+      </div>
+
+      {reservations.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <p className="text-sm text-slate-400">예약 내역이 없습니다.</p>
+        </div>
+      ) : (
       <div className="space-y-6">
         {active.length > 0 && (
           <section>
@@ -94,6 +114,7 @@ export function ReservationsView({
           </section>
         )}
       </div>
+      )}
 
       {confirmId && (
         <>
