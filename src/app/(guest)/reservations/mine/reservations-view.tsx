@@ -17,21 +17,28 @@ async function fetchMyReservations(): Promise<SerializedReservation[]> {
   return data.reservations;
 }
 
-export function ReservationsView({
-  initialReservations,
-}: {
-  initialReservations: SerializedReservation[];
-}) {
-  const queryClient = useQueryClient();
+function ReservationsSkeleton() {
+  return (
+    <div className="space-y-3">
+      {[1, 2].map((i) => (
+        <div
+          key={i}
+          className="h-40 w-full animate-pulse rounded-2xl border border-slate-100 bg-slate-100"
+        />
+      ))}
+    </div>
+  );
+}
+
+export function ReservationsView() {
   const { data: session } = useSession();
+  const queryClient = useQueryClient();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
-  const { data: reservations = [] } = useQuery({
+  const { data: reservations = [], isLoading } = useQuery({
     queryKey: ["reservations", "mine"],
     queryFn: fetchMyReservations,
-    initialData: initialReservations,
-    initialDataUpdatedAt: Date.now(),
     staleTime: 60 * 1000,
   });
 
@@ -52,14 +59,14 @@ export function ReservationsView({
     }
   }
 
+  const initial = session?.user?.name?.charAt(0).toUpperCase() ?? "";
+
   const active = reservations.filter(
     (r) => r.status === "pending" || r.status === "approved",
   );
   const past = reservations.filter(
     (r) => r.status === "rejected" || r.status === "cancelled",
   );
-
-  const initial = session?.user?.name?.charAt(0).toUpperCase() ?? "";
 
   return (
     <>
@@ -76,44 +83,53 @@ export function ReservationsView({
         <button
           type="button"
           onClick={() => signOut({ callbackUrl: "/" })}
-          className="shrink-0 text-xs font-medium text-slate-400 transition-colors hover:text-red-500"
+          className="shrink-0 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-400 transition-colors hover:border-slate-300 hover:text-slate-600"
         >
           로그아웃
         </button>
       </div>
 
-      {reservations.length === 0 ? (
+      {isLoading ? (
+        <ReservationsSkeleton />
+      ) : reservations.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <p className="text-sm text-slate-400">예약 내역이 없습니다.</p>
         </div>
       ) : (
-      <div className="space-y-6">
-        {active.length > 0 && (
-          <section>
-            <h2 className="mb-3 text-sm font-semibold text-slate-900">진행 중인 예약</h2>
-            <div className="space-y-3">
-              {active.map((r) => (
-                <ReservationCard
-                  key={r.id}
-                  reservation={r}
-                  onCancelRequest={() => setConfirmId(r.id)}
-                />
-              ))}
-            </div>
-          </section>
-        )}
+        <div className="space-y-6">
+          {active.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                진행 중인 예약
+              </h2>
+              <div className="space-y-3">
+                {active.map((r) => (
+                  <ReservationCard
+                    key={r.id}
+                    reservation={r}
+                    onCancelRequest={() => setConfirmId(r.id)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
 
-        {past.length > 0 && (
-          <section>
-            <h2 className="mb-3 text-sm font-semibold text-slate-400">지난 예약</h2>
-            <div className="space-y-3">
-              {past.map((r) => (
-                <ReservationCard key={r.id} reservation={r} />
-              ))}
-            </div>
-          </section>
-        )}
-      </div>
+          {past.length > 0 && (
+            <>
+              {active.length > 0 && <hr className="border-slate-100" />}
+              <section>
+                <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-300">
+                  지난 예약
+                </h2>
+                <div className="space-y-2">
+                  {past.map((r) => (
+                    <PastReservationCard key={r.id} reservation={r} />
+                  ))}
+                </div>
+              </section>
+            </>
+          )}
+        </div>
       )}
 
       {confirmId && (
@@ -163,21 +179,29 @@ function ReservationCard({
 
   return (
     <div className="rounded-2xl border border-slate-200 px-4 py-4">
-      <div className="mb-3 flex items-start justify-between">
-        <div>
-          <p className="text-sm font-semibold text-slate-900">
-            {format(checkIn, "yyyy.MM.dd (EEE)", { locale: ko })} –{" "}
-            {format(checkOut, "MM.dd (EEE)", { locale: ko })}
-          </p>
-          <p className="mt-0.5 text-xs text-slate-400">
-            {nights}박 · {reservation.guestCount}인
+      <StatusBadge status={reservation.status} />
+      <p className="mt-1.5 text-xs text-slate-400">
+        {nights}박 · {reservation.guestCount}인
+      </p>
+
+      <div className="mt-3 flex items-center gap-2">
+        <div className="flex-1 rounded-xl bg-slate-50 px-3 py-2.5">
+          <p className="mb-0.5 text-xs text-slate-400">체크인</p>
+          <p className="text-sm font-medium text-slate-900">
+            {format(checkIn, "M월 d일 (EEE)", { locale: ko })}
           </p>
         </div>
-        <StatusBadge status={reservation.status} />
+        <span className="text-sm text-slate-300">→</span>
+        <div className="flex-1 rounded-xl bg-slate-50 px-3 py-2.5">
+          <p className="mb-0.5 text-xs text-slate-400">체크아웃</p>
+          <p className="text-sm font-medium text-slate-900">
+            {format(checkOut, "M월 d일 (EEE)", { locale: ko })}
+          </p>
+        </div>
       </div>
 
       {reservation.memo && (
-        <p className="mb-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
+        <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2.5 text-xs text-slate-500">
           {reservation.memo}
         </p>
       )}
@@ -186,11 +210,32 @@ function ReservationCard({
         <button
           type="button"
           onClick={onCancelRequest}
-          className="w-full rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-red-500 transition-colors hover:bg-red-50"
+          className="mt-3 w-full rounded-xl border-[1.5px] border-red-500 py-2.5 text-sm font-medium text-red-500 transition-colors active:bg-red-500 active:text-white"
         >
           예약 취소
         </button>
       )}
+    </div>
+  );
+}
+
+function PastReservationCard({ reservation }: { reservation: SerializedReservation }) {
+  const checkIn = new Date(reservation.checkIn);
+  const checkOut = new Date(reservation.checkOut);
+  const nights = Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+
+  return (
+    <div className="rounded-2xl border border-slate-100 px-4 py-3 opacity-60">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-slate-600">
+          {format(checkIn, "M월 d일", { locale: ko })} →{" "}
+          {format(checkOut, "M월 d일", { locale: ko })}
+        </p>
+        <StatusBadge status={reservation.status} />
+      </div>
+      <p className="mt-1 text-xs text-slate-400">
+        {nights}박 · {reservation.guestCount}인
+      </p>
     </div>
   );
 }

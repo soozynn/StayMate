@@ -31,7 +31,7 @@
 | 예약 현황 (`/calendar`) | ISR (revalidate=10) | 공용 데이터, 예약 변경 후 10초 내 갱신 |
 | 예약하기 (`/book`) | 정적 shell + React Query | 취소 후 즉각 반영 필요, ISR TTL 대기 없이 캐시 무효화 |
 | 예약 확인 (`/book/confirm`) | SSR (async Server Component) | 세션에서 이름·이메일 읽어 폼 pre-fill, 로딩 깜빡임 없음 |
-| 내 예약 (`/reservations/mine`) | Suspense streaming + 스켈레톤 | 유저별 데이터라 ISR 불가, 헤더 즉시 표시 후 데이터 스트리밍 |
+| 내 예약 (`/reservations/mine`) | 정적 shell + React Query | 유저별 데이터라 ISR 불가, 페이지 shell은 CDN 즉각 응답 후 스켈레톤 표시, 데이터는 클라이언트 fetch |
 
 ## 시작하기
 
