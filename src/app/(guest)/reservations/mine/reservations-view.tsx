@@ -210,7 +210,7 @@ function ReservationCard({
         <button
           type="button"
           onClick={onCancelRequest}
-          className="mt-3 w-full rounded-xl border-[1.5px] border-red-500 py-2.5 text-sm font-medium text-red-500 transition-colors active:bg-red-500 active:text-white"
+          className="mt-3 w-full rounded-xl border-[1.5px] border-red-500 py-2.5 text-sm font-medium text-red-500 transition-opacity active:opacity-70"
         >
           예약 취소
         </button>
