@@ -1,8 +1,8 @@
 "use client";
 
-import { format, startOfDay } from "date-fns";
+import { addMonths, format, getDaysInMonth, startOfDay } from "date-fns";
 import { ko } from "date-fns/locale";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { DayPicker, useDayPicker, type DateRange, type MonthCaptionProps } from "react-day-picker";
 import "react-day-picker/style.css";
 
@@ -64,6 +64,7 @@ export function DateRangePicker({
   onChange,
 }: DateRangePickerProps) {
   const today = startOfDay(new Date());
+  const [month, setMonth] = useState<Date>(today);
 
   // Date 객체 변환을 한 번만 수행
   const parsed = useMemo<ParsedRange[]>(
@@ -135,6 +136,10 @@ export function DateRangePicker({
         onChange(undefined);
         return;
       }
+      // 달의 마지막 날 선택 시 다음 달로 자동 이동 — 체크아웃 선택 편의
+      if (range.from && from.getDate() === getDaysInMonth(from)) {
+        setMonth(addMonths(from, 1));
+      }
       onChange({ from: range.from, to: undefined });
       return;
     }
@@ -180,6 +185,8 @@ export function DateRangePicker({
         mode="range"
         selected={value}
         onSelect={handleSelect}
+        month={month}
+        onMonthChange={setMonth}
         locale={ko}
         disabled={disabledDays}
         modifiers={modifiers}
