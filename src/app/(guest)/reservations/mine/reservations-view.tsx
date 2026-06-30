@@ -16,27 +16,21 @@ async function fetchMyReservations(): Promise<SerializedReservation[]> {
   return data.reservations;
 }
 
-function ReservationsSkeleton() {
-  return (
-    <div className="space-y-3">
-      {[1, 2].map((i) => (
-        <div
-          key={i}
-          className="h-28 w-full animate-pulse rounded-2xl border border-slate-100 bg-slate-100"
-        />
-      ))}
-    </div>
-  );
-}
-
-export function ReservationsView() {
+export function ReservationsView({
+  initialReservations,
+}: {
+  initialReservations: SerializedReservation[];
+}) {
   const queryClient = useQueryClient();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
-  const { data: reservations = [], isLoading } = useQuery({
+  const { data: reservations = [] } = useQuery({
     queryKey: ["reservations", "mine"],
     queryFn: fetchMyReservations,
+    initialData: initialReservations,
+    initialDataUpdatedAt: Date.now(),
+    staleTime: 60 * 1000,
   });
 
   async function handleCancel(id: string) {
@@ -55,8 +49,6 @@ export function ReservationsView() {
       setConfirmId(null);
     }
   }
-
-  if (isLoading) return <ReservationsSkeleton />;
 
   const active = reservations.filter(
     (r) => r.status === "pending" || r.status === "approved",

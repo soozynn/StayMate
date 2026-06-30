@@ -72,6 +72,10 @@ export default function HomePage() {
               </li>
               <li className="flex gap-2">
                 <span className="mt-0.5 text-slate-900">•</span>
+                예약 확정 시 숙소 주소를 확정 이메일로 안내해 드립니다
+              </li>
+              <li className="flex gap-2">
+                <span className="mt-0.5 text-slate-900">•</span>
                 반려동물 동반 가능합니다
               </li>
               <li className="flex gap-2">

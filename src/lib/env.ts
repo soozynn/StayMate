@@ -44,6 +44,8 @@ const serverEnvSchema = z.object({
   SMTP_USER: optionalString,
   SMTP_PASSWORD: optionalString,
   MAIL_FROM: optionalString,
+
+  PROPERTY_ADDRESS: optionalString,
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

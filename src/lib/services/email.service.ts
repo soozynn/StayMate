@@ -280,6 +280,9 @@ export async function sendAdminNotification(
 export async function sendGuestConfirmation(
   reservation: SerializedReservation,
 ) {
+  const env = getServerEnv();
+  const propertyAddress = env.PROPERTY_ADDRESS;
+
   const htmlContent = wrapHtmlTemplate(`
     <div class="header">
       <div class="brand">StayMate</div>
@@ -309,7 +312,21 @@ export async function sendGuestConfirmation(
         <td class="details-label">체크아웃</td>
         <td class="details-value">${formatDateString(reservation.checkOut)}</td>
       </tr>
+      ${propertyAddress ? `
+      <tr>
+        <td class="details-label">숙소 주소</td>
+        <td class="details-value" style="color: #6366f1; font-weight: 600;">${propertyAddress}</td>
+      </tr>
+      ` : ""}
     </table>
+    ${propertyAddress ? `
+    <div class="note-box" style="margin-top: 24px; border-left-color: #6366f1; background-color: #f5f3ff;">
+      <p style="margin: 0; font-size: 13px; color: #4338ca; font-weight: 500;">
+        📍 위 주소로 체크인 날짜에 방문해 주세요.<br>
+        문의사항이 있으시면 예약 이메일로 연락해 주세요.
+      </p>
+    </div>
+    ` : ""}
   `);
 
   const client = getTransporter();
