@@ -90,25 +90,29 @@ export function BookClient() {
 
           {/* 스텝 인디케이터 */}
           <div className="mb-3 flex items-center">
-            <div className="flex items-center gap-1.5">
-              <div
-                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
-                  dateRange?.from
-                    ? "bg-emerald-500 text-white"
-                    : "bg-indigo-500 text-white"
-                }`}
-              >
-                {dateRange?.from ? "✓" : "1"}
+            {/* 왼쪽 절반: 체크인 + 연결선 → 체크아웃 ②가 정확히 50% 지점에서 시작 */}
+            <div className="flex w-1/2 items-center">
+              <div className="flex shrink-0 items-center gap-1.5">
+                <div
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
+                    dateRange?.from
+                      ? "bg-emerald-500 text-white"
+                      : "bg-indigo-500 text-white"
+                  }`}
+                >
+                  {dateRange?.from ? "✓" : "1"}
+                </div>
+                <span
+                  className={`text-xs font-medium ${
+                    dateRange?.from ? "text-emerald-600" : "text-indigo-600"
+                  }`}
+                >
+                  체크인
+                </span>
               </div>
-              <span
-                className={`text-xs font-medium ${
-                  dateRange?.from ? "text-emerald-600" : "text-indigo-600"
-                }`}
-              >
-                체크인
-              </span>
+              <div className="mx-2 h-px flex-1 bg-slate-200" />
             </div>
-            <div className="mx-3 h-px w-16 bg-slate-200" />
+            {/* 체크아웃: 50% 지점에서 시작 */}
             <div className="flex items-center gap-1.5">
               <div
                 className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
