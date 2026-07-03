@@ -1,9 +1,9 @@
 "use client";
 
-import { addMonths, format, getDaysInMonth, startOfDay } from "date-fns";
+import { addDays, addMonths, endOfMonth, format, getDaysInMonth, startOfDay, startOfMonth } from "date-fns";
 import { ko } from "date-fns/locale";
 import type { ComponentProps } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DayButton, DayPicker, useDayPicker, type DateRange, type MonthCaptionProps } from "react-day-picker";
 import "react-day-picker/style.css";
 
@@ -101,7 +101,8 @@ export function DateRangePicker({
   onChange,
 }: DateRangePickerProps) {
   const today = startOfDay(new Date());
-  const [month, setMonth] = useState<Date>(today);
+  const [month, setMonth] = useState<Date>(startOfMonth(today));
+  const autoNavDone = useRef(false);
 
   // Date 객체 변환을 한 번만 수행
   const parsed = useMemo<ParsedRange[]>(
@@ -116,6 +117,44 @@ export function DateRangePicker({
 
   const pendingRanges = useMemo(() => parsed.filter((r) => r.status === "pending"), [parsed]);
   const approvedRanges = useMemo(() => parsed.filter((r) => r.status === "approved"), [parsed]);
+
+  // 오늘 달에 선택 가능한 날이 없으면 첫 예약 가능 달로 자동 이동 (초기 1회)
+  useEffect(() => {
+    if (autoNavDone.current || value?.from) return;
+
+    // 특정 달에 체크인 가능한 날이 하나라도 있는지 확인
+    function hasAvailable(monthStart: Date): boolean {
+      const end = endOfMonth(monthStart);
+      let d = monthStart > today ? new Date(monthStart) : new Date(today);
+      while (d <= end) {
+        const day = startOfDay(new Date(d));
+        if (
+          !inRangeInterior(day, parsed) &&
+          !pendingRanges.some((r) => day.getTime() === r.checkIn.getTime())
+        ) {
+          return true;
+        }
+        d = addDays(d, 1);
+      }
+      return false;
+    }
+
+    if (!hasAvailable(startOfMonth(today))) {
+      // 오늘 달이 전부 마감 → 향후 3개월 내 첫 가능 달 탐색
+      for (let i = 1; i <= 3; i++) {
+        const candidate = startOfMonth(addMonths(today, i));
+        if (hasAvailable(candidate)) {
+          setMonth(candidate);
+          break;
+        }
+      }
+    }
+
+    // parsed에 실제 데이터가 있을 때만 완료 처리 (빈 배열 = 아직 로딩 중일 수 있음)
+    if (parsed.length > 0) {
+      autoNavDone.current = true;
+    }
+  }, [parsed, pendingRanges]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 체크인이 선택된 순간부터 checkout phase disabled 규칙 고정
   // — range 완성 여부와 무관하게 nextBlockCheckIn 경계를 항상 유지
@@ -182,6 +221,11 @@ export function DateRangePicker({
     }
 
     if (from && !to) {
+      // 현재 체크인 날짜를 다시 클릭 → 전체 해제 (react-day-picker가 {from, to:undefined}로 보내는 경우)
+      if (value?.from && from.getTime() === startOfDay(value.from).getTime()) {
+        onChange(undefined);
+        return;
+      }
       // 이미 선택된 체크아웃 날짜를 다시 클릭 → 체크아웃만 해제
       if (value?.to && from.getTime() === startOfDay(value.to).getTime()) {
         onChange({ from: value.from, to: undefined });

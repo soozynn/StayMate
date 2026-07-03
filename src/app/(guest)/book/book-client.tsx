@@ -88,70 +88,86 @@ export function BookClient() {
             날짜 선택
           </p>
 
-          {/* 스텝 인디케이터 */}
-          <div className="mb-3 flex items-center">
-            {/* 왼쪽 절반: 체크인 + 연결선 → 체크아웃 ②가 정확히 50% 지점에서 시작 */}
-            <div className="flex w-1/2 items-center">
-              <div className="flex shrink-0 items-center gap-1.5">
+          {/* 날짜 선택 박스 (내 예약 스타일 통일) */}
+          <div className="mb-3 flex items-center gap-2">
+            <div
+              className={`flex-1 rounded-xl px-3 py-2.5 ${
+                dateRange?.from
+                  ? "bg-slate-50"
+                  : "border border-indigo-300 bg-slate-50"
+              }`}
+            >
+              <div className="mb-1 flex items-center gap-1.5">
                 <div
-                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
-                    dateRange?.from
-                      ? "bg-emerald-500 text-white"
-                      : "bg-indigo-500 text-white"
+                  className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${
+                    dateRange?.from ? "bg-emerald-500 text-white" : "bg-indigo-500 text-white"
                   }`}
                 >
                   {dateRange?.from ? "✓" : "1"}
                 </div>
                 <span
-                  className={`text-xs font-medium ${
-                    dateRange?.from ? "text-emerald-600" : "text-indigo-600"
+                  className={`text-[10px] ${
+                    dateRange?.from ? "text-emerald-600" : "text-indigo-500"
                   }`}
                 >
                   체크인
                 </span>
               </div>
-              <div className="mx-2 h-px flex-1 bg-slate-200" />
-            </div>
-            {/* 체크아웃: 50% 지점에서 시작 */}
-            <div className="flex items-center gap-1.5">
-              <div
-                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
-                  dateRange?.to
-                    ? "bg-emerald-500 text-white"
-                    : dateRange?.from
-                      ? "bg-indigo-500 text-white"
-                      : "border border-slate-200 bg-slate-100 text-slate-400"
+              <p
+                className={`text-sm font-medium ${
+                  dateRange?.from ? "text-slate-900" : "text-slate-400"
                 }`}
               >
-                {dateRange?.to ? "✓" : "2"}
-              </div>
-              <span
-                className={`text-xs font-medium ${
-                  dateRange?.to
-                    ? "text-emerald-600"
-                    : dateRange?.from
-                      ? "text-indigo-600"
-                      : "text-slate-400"
-                }`}
-              >
-                체크아웃
-              </span>
-            </div>
-          </div>
-
-          {/* 체크인 미선택 시 안내 */}
-          {!dateRange?.from && (
-            <div className="mb-3 flex items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" x2="12" y1="8" y2="12" />
-                <line x1="12" x2="12.01" y1="16" y2="16" />
-              </svg>
-              <p className="text-xs font-medium text-indigo-600">
-                체크인 날짜를 먼저 선택해주세요
+                {dateRange?.from
+                  ? format(dateRange.from, "M월 d일 (EEE)", { locale: ko })
+                  : "날짜를 선택해주세요"}
               </p>
             </div>
-          )}
+
+            <span className="text-sm text-slate-300">→</span>
+
+            <div
+              className={`flex-1 rounded-xl px-3 py-2.5 ${
+                dateRange?.from && !dateRange?.to
+                  ? "border border-indigo-300 bg-slate-50"
+                  : "bg-slate-50"
+              } ${!dateRange?.from ? "opacity-50" : ""}`}
+            >
+              <div className="mb-1 flex items-center gap-1.5">
+                <div
+                  className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${
+                    dateRange?.to
+                      ? "bg-emerald-500 text-white"
+                      : dateRange?.from
+                        ? "bg-indigo-500 text-white"
+                        : "border border-slate-200 bg-slate-100 text-slate-400"
+                  }`}
+                >
+                  {dateRange?.to ? "✓" : "2"}
+                </div>
+                <span
+                  className={`text-[10px] ${
+                    dateRange?.to
+                      ? "text-emerald-600"
+                      : dateRange?.from
+                        ? "text-indigo-500"
+                        : "text-slate-400"
+                  }`}
+                >
+                  체크아웃
+                </span>
+              </div>
+              <p
+                className={`text-sm font-medium ${
+                  dateRange?.to ? "text-slate-900" : "text-slate-400"
+                }`}
+              >
+                {dateRange?.to
+                  ? format(dateRange.to, "M월 d일 (EEE)", { locale: ko })
+                  : "—"}
+              </p>
+            </div>
+          </div>
 
           <DateRangePicker
             blockedRanges={blockedRanges}
@@ -161,26 +177,9 @@ export function BookClient() {
         </div>
 
         {canProceed && dateRange?.from && dateRange?.to && (
-          <div className="rounded-2xl border border-slate-200 px-4 py-4">
-            <div className="flex items-center gap-2">
-              <div className="flex-1 rounded-xl bg-slate-50 px-3 py-2.5">
-                <p className="mb-0.5 text-xs text-slate-400">체크인</p>
-                <p className="text-sm font-medium text-slate-900">
-                  {format(dateRange.from, "M월 d일 (EEE)", { locale: ko })}
-                </p>
-              </div>
-              <span className="text-sm text-slate-300">→</span>
-              <div className="flex-1 rounded-xl bg-slate-50 px-3 py-2.5">
-                <p className="mb-0.5 text-xs text-slate-400">체크아웃</p>
-                <p className="text-sm font-medium text-slate-900">
-                  {format(dateRange.to, "M월 d일 (EEE)", { locale: ko })}
-                </p>
-              </div>
-            </div>
-            <p className="mt-2.5 text-xs text-slate-400">
-              {Math.round((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24))}박 · {guestCount}인
-            </p>
-          </div>
+          <p className="text-center text-xs text-slate-400">
+            {Math.round((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24))}박 · {guestCount}인
+          </p>
         )}
 
         <Button fullWidth size="lg" disabled={!canProceed} onClick={handleProceed}>
