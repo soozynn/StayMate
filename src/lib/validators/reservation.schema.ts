@@ -46,16 +46,28 @@ export const availabilityQuerySchema = z
   });
 
 export const updateReservationStatusSchema = z.object({
-  status: z.enum(["approved", "rejected"]),
+  status: z.enum(["approved", "rejected", "cancelled"]),
   source: reviewSourceSchema,
   reviewedBy: z.string().trim().email().optional(),
   adminNote: z.string().trim().max(1000).optional().or(z.literal("")),
   token: z.string().min(1).optional(),
 });
 
+export const createManualReservationSchema = createReservationBaseSchema
+  .extend({
+    guestEmail: z.string().trim().email("올바른 이메일 형식을 입력해주세요").max(254),
+  })
+  .refine((value) => value.checkIn < value.checkOut, {
+    message: "checkOut must be after checkIn",
+    path: ["checkOut"],
+  });
+
 export type CreateReservationInput = z.infer<typeof createReservationSchema>;
 export type CreateReservationWithSessionInput = z.infer<
   typeof createReservationWithSessionSchema
+>;
+export type CreateManualReservationInput = z.infer<
+  typeof createManualReservationSchema
 >;
 export type AvailabilityQuery = z.infer<typeof availabilityQuerySchema>;
 export type UpdateReservationStatusInput = z.infer<

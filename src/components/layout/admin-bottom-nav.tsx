@@ -7,6 +7,16 @@ type NavItem = { href: string; label: string; icon: React.ReactNode };
 
 const navItems: NavItem[] = [
   {
+    href: "/admin",
+    label: "홈",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        <polyline points="9 22 9 12 15 12 15 22" />
+      </svg>
+    ),
+  },
+  {
     href: "/admin/reservations",
     label: "예약 목록",
     icon: (
@@ -42,7 +52,10 @@ export function AdminBottomNav() {
     >
       <div className="mx-auto flex max-w-[480px]">
         {navItems.map((item) => {
-          const isActive = pathname.startsWith(item.href);
+          const isActive =
+            item.href === "/admin"
+              ? pathname === "/admin"
+              : pathname.startsWith(item.href);
           return (
             <Link
               key={item.href}

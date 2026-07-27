@@ -423,3 +423,70 @@ export async function sendGuestRejection(
     );
   }
 }
+
+// 4. 게스트용: 관리자에 의한 예약 취소 알림 메일 발송
+export async function sendGuestCancellation(
+  reservation: SerializedReservation,
+  adminNote?: string,
+) {
+  const htmlContent = wrapHtmlTemplate(`
+    <div class="header">
+      <div class="brand">StayMate</div>
+      <h2 class="title" style="color: #ef4444;">예약이 취소되었습니다</h2>
+    </div>
+    <div class="divider"></div>
+    <p style="font-size: 14px; color: #52525b; line-height: 1.6;">
+      안녕하세요, ${reservation.guestName}님.<br>
+      부득이한 사정으로 확정되었던 예약이 취소되어 안내 메일을 드립니다.
+    </p>
+
+    <table class="details-table" style="margin-top: 16px; margin-bottom: 16px;">
+      <tr>
+        <td class="details-label">취소된 일정</td>
+        <td class="details-value">${formatDateString(reservation.checkIn)} ~ ${formatDateString(reservation.checkOut)}</td>
+      </tr>
+    </table>
+
+    ${
+      adminNote
+        ? `
+      <h4 style="font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 8px;">취소 사유</h4>
+      <div class="note-box">
+        ${adminNote}
+      </div>
+      `
+        : ""
+    }
+
+    <p style="font-size: 13px; color: #71717a; margin-top: 24px; line-height: 1.5;">
+      불편을 드려 죄송합니다. 궁금하신 점이 있으시면 예약 이메일로 문의해 주세요.
+    </p>
+  `);
+
+  const client = getTransporter();
+
+  try {
+    const info = await client.sendMail(
+      getMailOptions(
+        reservation.guestEmail,
+        `[StayMate] 예약이 취소되었습니다.`,
+        htmlContent,
+      ),
+    );
+    if ("message" in info) {
+      console.log(
+        `[EmailService] Guest 취소 이메일 로깅 (수신자: ${reservation.guestEmail}):`,
+        (info as Record<string, unknown>).message,
+      );
+    } else {
+      console.log(
+        `[EmailService] Guest 취소 이메일 발송 성공: ${reservation.guestEmail}`,
+      );
+    }
+  } catch (error) {
+    console.error(
+      `[EmailService] Guest 취소 이메일 발송 실패 (${reservation.guestEmail}):`,
+      error,
+    );
+  }
+}

@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { signOut, useSession } from "next-auth/react";
+import Link from "next/link";
 import { useState } from "react";
 
 import { StatusBadge } from "@/components/ui/badge";
@@ -88,6 +89,16 @@ export function ReservationsView() {
           로그아웃
         </button>
       </div>
+
+      {session?.user?.role === "admin" && (
+        <Link
+          href="/admin"
+          className="mb-6 flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-900 px-4 py-3.5 text-white"
+        >
+          <span className="text-sm font-medium">관리자 모드로 전환</span>
+          <span className="text-sm">→</span>
+        </Link>
+      )}
 
       {isLoading ? (
         <ReservationsSkeleton />

@@ -2,6 +2,7 @@ import { createHash, randomBytes, timingSafeEqual } from "crypto";
 import { after } from "next/server";
 import { Types } from "mongoose";
 
+import { AdminBlockModel } from "@/lib/db/models/AdminBlock";
 import {
   ReservationModel,
   type ReservationDocument,
@@ -9,10 +10,12 @@ import {
 import { connectMongoose } from "@/lib/db/mongoose";
 import {
   sendAdminNotification,
+  sendGuestCancellation,
   sendGuestConfirmation,
   sendGuestRejection,
 } from "@/lib/services/email.service";
 import type {
+  CreateManualReservationInput,
   CreateReservationWithSessionInput,
   UpdateReservationStatusInput,
 } from "@/lib/validators/reservation.schema";
@@ -43,7 +46,7 @@ export class ReservationServiceError extends Error {
 
 export type SerializedReservation = {
   id: string;
-  userId: string;
+  userId: string | null;
   guestName: string;
   guestEmail: string;
   guestCount: number;
@@ -76,7 +79,7 @@ export function serializeReservation(
 ): SerializedReservation {
   return {
     id: reservation.id,
-    userId: reservation.userId.toString(),
+    userId: reservation.userId ? reservation.userId.toString() : null,
     guestName: reservation.guestName,
     guestEmail: reservation.guestEmail,
     guestCount: reservation.guestCount,
@@ -186,6 +189,57 @@ export async function createReservation(
   return serialized;
 }
 
+export async function hasBlockingConflict(checkIn: Date, checkOut: Date) {
+  await connectMongoose();
+
+  const [reservationOverlap, blockOverlap] = await Promise.all([
+    ReservationModel.exists(getBlockingOverlapFilter(checkIn, checkOut)),
+    AdminBlockModel.exists({
+      startDate: { $lt: checkOut },
+      endDate: { $gt: checkIn },
+    }),
+  ]);
+
+  return Boolean(reservationOverlap || blockOverlap);
+}
+
+export async function createManualReservation(
+  input: CreateManualReservationInput,
+  admin: { email: string },
+) {
+  await connectMongoose();
+
+  const hasConflict = await hasBlockingConflict(input.checkIn, input.checkOut);
+
+  if (hasConflict) {
+    throw new ReservationServiceError(
+      "OVERLAP",
+      "Selected dates are already blocked",
+    );
+  }
+
+  const reservation = await ReservationModel.create({
+    ...input,
+    memo: input.memo || undefined,
+    status: "approved",
+    reviewedAt: new Date(),
+    reviewedBy: admin.email,
+    reviewSource: "admin",
+  });
+
+  const serialized = serializeReservation(reservation);
+
+  after(async () => {
+    try {
+      await sendGuestConfirmation(serialized);
+    } catch (error) {
+      console.error("[ReservationService] 수동 등록 확정 메일 전송 실패:", error);
+    }
+  });
+
+  return serialized;
+}
+
 export async function getReservationById(id: string) {
   await connectMongoose();
 
@@ -201,6 +255,9 @@ export async function getReservationById(id: string) {
 export async function listReservations(options?: {
   userId?: string;
   status?: ReservationStatus;
+  search?: string;
+  from?: Date;
+  to?: Date;
 }) {
   await connectMongoose();
 
@@ -214,9 +271,24 @@ export async function listReservations(options?: {
     filter.status = options.status;
   }
 
+  if (options?.search) {
+    const pattern = new RegExp(
+      options.search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+      "i",
+    );
+    filter.$or = [{ guestName: pattern }, { guestEmail: pattern }];
+  }
+
+  if (options?.from || options?.to) {
+    const checkInFilter: Record<string, Date> = {};
+    if (options.from) checkInFilter.$gte = options.from;
+    if (options.to) checkInFilter.$lte = options.to;
+    filter.checkIn = checkInFilter;
+  }
+
   type LeanDoc = {
     _id: Types.ObjectId;
-    userId: Types.ObjectId;
+    userId?: Types.ObjectId;
     guestName: string;
     guestEmail: string;
     guestCount: number;
@@ -240,7 +312,7 @@ export async function listReservations(options?: {
 
   return raw.map<SerializedReservation>((r) => ({
     id: r._id.toString(),
-    userId: r.userId.toString(),
+    userId: r.userId ? r.userId.toString() : null,
     guestName: r.guestName,
     guestEmail: r.guestEmail,
     guestCount: r.guestCount,
@@ -259,7 +331,7 @@ export async function listReservations(options?: {
 
 export async function updateStatus(
   id: string,
-  status: Extract<ReservationStatus, "approved" | "rejected">,
+  status: Extract<ReservationStatus, "approved" | "rejected" | "cancelled">,
   options: Omit<UpdateReservationStatusInput, "status">,
 ) {
   await connectMongoose();
@@ -270,7 +342,14 @@ export async function updateStatus(
     throw new ReservationServiceError("NOT_FOUND", "Reservation not found");
   }
 
-  if (reservation.status !== "pending") {
+  if (status === "cancelled") {
+    if (reservation.status === "cancelled" || reservation.status === "rejected") {
+      throw new ReservationServiceError(
+        "CANNOT_CANCEL",
+        "This reservation cannot be cancelled",
+      );
+    }
+  } else if (reservation.status !== "pending") {
     throw new ReservationServiceError(
       "ALREADY_REVIEWED",
       "Only pending reservations can be reviewed",
@@ -300,6 +379,8 @@ export async function updateStatus(
         await sendGuestConfirmation(serialized);
       } else if (status === "rejected") {
         await sendGuestRejection(serialized, options.adminNote);
+      } else if (status === "cancelled") {
+        await sendGuestCancellation(serialized, options.adminNote);
       }
     } catch (error) {
       console.error("[ReservationService] 게스트 메일 전송 실패:", error);
@@ -318,7 +399,7 @@ export async function cancelReservation(id: string, requestingUserId: string) {
     throw new ReservationServiceError("NOT_FOUND", "Reservation not found");
   }
 
-  if (reservation.userId.toString() !== requestingUserId) {
+  if (reservation.userId?.toString() !== requestingUserId) {
     throw new ReservationServiceError("FORBIDDEN", "Forbidden");
   }
 
