@@ -1,31 +1,15 @@
-import { endOfMonth, format, isSameDay, startOfMonth } from "date-fns";
+import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import Link from "next/link";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
-import { listReservations } from "@/lib/services/reservation.service";
+import { getDashboardSnapshot } from "@/lib/services/reservation.service";
 
 export default async function AdminDashboardPage() {
-  const reservations = await listReservations();
+  const { pendingCount, approvedThisMonthCount, checkingInToday, checkingOutToday } =
+    await getDashboardSnapshot();
   const today = new Date();
-
-  const pending = reservations.filter((r) => r.status === "pending");
-  const checkingInToday = reservations.filter(
-    (r) => r.status === "approved" && isSameDay(new Date(r.checkIn), today),
-  );
-  const checkingOutToday = reservations.filter(
-    (r) => r.status === "approved" && isSameDay(new Date(r.checkOut), today),
-  );
-
-  const monthStart = startOfMonth(today);
-  const monthEnd = endOfMonth(today);
-  const approvedThisMonth = reservations.filter(
-    (r) =>
-      r.status === "approved" &&
-      new Date(r.checkIn) >= monthStart &&
-      new Date(r.checkIn) <= monthEnd,
-  ).length;
 
   return (
     <>
@@ -35,11 +19,11 @@ export default async function AdminDashboardPage() {
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-2xl border border-slate-200 px-4 py-4">
             <p className="text-xs text-slate-400">대기 중</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{pending.length}건</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{pendingCount}건</p>
           </div>
           <div className="rounded-2xl border border-slate-200 px-4 py-4">
             <p className="text-xs text-slate-400">{format(today, "M월")} 확정 예약</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{approvedThisMonth}건</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{approvedThisMonthCount}건</p>
           </div>
         </div>
 

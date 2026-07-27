@@ -30,7 +30,11 @@ async function deleteBlock(id: string) {
   if (!res.ok) throw new Error("Failed to delete block");
 }
 
-export function BlockedDatesView() {
+export function BlockedDatesView({
+  initialBlocks,
+}: {
+  initialBlocks?: SerializedAdminBlock[];
+}) {
   const queryClient = useQueryClient();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [reason, setReason] = useState("");
@@ -40,6 +44,7 @@ export function BlockedDatesView() {
     queryKey: ["admin-blocked-dates"],
     queryFn: fetchBlocks,
     staleTime: 30 * 1000,
+    initialData: initialBlocks,
   });
 
   const createMutation = useMutation({

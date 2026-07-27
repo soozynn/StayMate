@@ -1,4 +1,5 @@
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
+import { endOfDay, endOfMonth, startOfDay, startOfMonth } from "date-fns";
 import { after } from "next/server";
 import { Types } from "mongoose";
 
@@ -327,6 +328,57 @@ export async function listReservations(options?: {
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
   }));
+}
+
+export type DashboardGuestSummary = {
+  id: string;
+  guestName: string;
+  guestCount: number;
+};
+
+export type DashboardSnapshot = {
+  pendingCount: number;
+  approvedThisMonthCount: number;
+  checkingInToday: DashboardGuestSummary[];
+  checkingOutToday: DashboardGuestSummary[];
+};
+
+export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
+  await connectMongoose();
+
+  const now = new Date();
+  const todayRange = { $gte: startOfDay(now), $lte: endOfDay(now) };
+  const monthRange = { $gte: startOfMonth(now), $lte: endOfMonth(now) };
+
+  type GuestSummaryDoc = { _id: Types.ObjectId; guestName: string; guestCount: number };
+
+  const [pendingCount, approvedThisMonthCount, checkingInDocs, checkingOutDocs] =
+    await Promise.all([
+      ReservationModel.countDocuments({ status: "pending" }),
+      ReservationModel.countDocuments({ status: "approved", checkIn: monthRange }),
+      ReservationModel.find({ status: "approved", checkIn: todayRange })
+        .select({ guestName: 1, guestCount: 1 })
+        .lean<GuestSummaryDoc[]>()
+        .exec(),
+      ReservationModel.find({ status: "approved", checkOut: todayRange })
+        .select({ guestName: 1, guestCount: 1 })
+        .lean<GuestSummaryDoc[]>()
+        .exec(),
+    ]);
+
+  const toSummary = (docs: GuestSummaryDoc[]): DashboardGuestSummary[] =>
+    docs.map((d) => ({
+      id: d._id.toString(),
+      guestName: d.guestName,
+      guestCount: d.guestCount,
+    }));
+
+  return {
+    pendingCount,
+    approvedThisMonthCount,
+    checkingInToday: toSummary(checkingInDocs),
+    checkingOutToday: toSummary(checkingOutDocs),
+  };
 }
 
 export async function updateStatus(

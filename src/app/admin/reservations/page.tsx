@@ -1,9 +1,12 @@
 import Link from "next/link";
 
 import { PageHeader } from "@/components/layout/page-header";
+import { listReservations } from "@/lib/services/reservation.service";
 import { ReservationsAdminView } from "./reservations-admin-view";
 
-export default function AdminReservationsPage() {
+export default async function AdminReservationsPage() {
+  const initialReservations = await listReservations({ status: "pending" });
+
   return (
     <>
       <PageHeader
@@ -20,7 +23,7 @@ export default function AdminReservationsPage() {
         }
       />
       <div className="px-5">
-        <ReservationsAdminView />
+        <ReservationsAdminView initialReservations={initialReservations} />
       </div>
     </>
   );

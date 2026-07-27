@@ -41,8 +41,14 @@ const STATUS_TABS: { value: StatusFilter; label: string }[] = [
 
 type PendingAction = { id: string; type: "reject" | "cancel" };
 
-export function ReservationsAdminView() {
-  const [filter, setFilter] = useState<StatusFilter>("pending");
+const DEFAULT_FILTER: StatusFilter = "pending";
+
+export function ReservationsAdminView({
+  initialReservations,
+}: {
+  initialReservations?: SerializedReservation[];
+}) {
+  const [filter, setFilter] = useState<StatusFilter>(DEFAULT_FILTER);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [showDateFilter, setShowDateFilter] = useState(false);
@@ -56,11 +62,15 @@ export function ReservationsAdminView() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
+  const isDefaultQuery =
+    filter === DEFAULT_FILTER && !search && !dateFrom && !dateTo;
+
   const { data: reservations = [], isLoading } = useQuery({
     queryKey: ["admin-reservations", filter, search, dateFrom, dateTo],
     queryFn: () =>
       fetchAdminReservations({ status: filter, search, from: dateFrom, to: dateTo }),
     staleTime: 30 * 1000,
+    initialData: isDefaultQuery ? initialReservations : undefined,
   });
 
   const mutation = useReservationStatusMutation();
