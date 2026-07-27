@@ -84,6 +84,86 @@ export function BlockedDatesView() {
       {/* 날짜 선택 섹션 */}
       <div>
         <p className="mb-3 text-sm font-medium text-slate-900">차단할 날짜 선택</p>
+
+        {/* 날짜 선택 박스 (게스트 예약하기 스타일 통일) */}
+        <div className="mb-3 flex items-center gap-2">
+          <div
+            className={`flex-1 rounded-xl px-3 py-2.5 ${
+              dateRange?.from
+                ? "bg-slate-50"
+                : "border border-indigo-300 bg-slate-50"
+            }`}
+          >
+            <div className="mb-1 flex items-center gap-1.5">
+              <div
+                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${
+                  dateRange?.from ? "bg-emerald-500 text-white" : "bg-indigo-500 text-white"
+                }`}
+              >
+                {dateRange?.from ? "✓" : "1"}
+              </div>
+              <span
+                className={`text-[10px] ${
+                  dateRange?.from ? "text-emerald-600" : "text-indigo-500"
+                }`}
+              >
+                시작일
+              </span>
+            </div>
+            <p
+              className={`text-sm font-medium ${
+                dateRange?.from ? "text-slate-900" : "text-slate-400"
+              }`}
+            >
+              {dateRange?.from
+                ? format(dateRange.from, "M월 d일 (EEE)", { locale: ko })
+                : "날짜를 선택해주세요"}
+            </p>
+          </div>
+
+          <span className="text-sm text-slate-300">→</span>
+
+          <div
+            className={`flex-1 rounded-xl px-3 py-2.5 ${
+              dateRange?.from && !dateRange?.to
+                ? "border border-indigo-300 bg-slate-50"
+                : "bg-slate-50"
+            } ${!dateRange?.from ? "opacity-50" : ""}`}
+          >
+            <div className="mb-1 flex items-center gap-1.5">
+              <div
+                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${
+                  dateRange?.to
+                    ? "bg-emerald-500 text-white"
+                    : dateRange?.from
+                      ? "bg-indigo-500 text-white"
+                      : "border border-slate-200 bg-slate-100 text-slate-400"
+                }`}
+              >
+                {dateRange?.to ? "✓" : "2"}
+              </div>
+              <span
+                className={`text-[10px] ${
+                  dateRange?.to
+                    ? "text-emerald-600"
+                    : dateRange?.from
+                      ? "text-indigo-500"
+                      : "text-slate-400"
+                }`}
+              >
+                종료일
+              </span>
+            </div>
+            <p
+              className={`text-sm font-medium ${
+                dateRange?.to ? "text-slate-900" : "text-slate-400"
+              }`}
+            >
+              {dateRange?.to ? format(dateRange.to, "M월 d일 (EEE)", { locale: ko }) : "—"}
+            </p>
+          </div>
+        </div>
+
         <DateRangePicker
           blockedRanges={blockedRanges}
           value={dateRange}
@@ -92,21 +172,6 @@ export function BlockedDatesView() {
 
         {canSave && (
           <div className="mt-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="flex-1 rounded-xl bg-slate-50 px-3 py-2.5">
-                <p className="mb-0.5 text-xs text-slate-400">시작일</p>
-                <p className="text-sm font-medium text-slate-900">
-                  {format(dateRange!.from!, "M월 d일 (EEE)", { locale: ko })}
-                </p>
-              </div>
-              <span className="text-sm text-slate-300">→</span>
-              <div className="flex-1 rounded-xl bg-slate-50 px-3 py-2.5">
-                <p className="mb-0.5 text-xs text-slate-400">종료일</p>
-                <p className="text-sm font-medium text-slate-900">
-                  {format(dateRange!.to!, "M월 d일 (EEE)", { locale: ko })}
-                </p>
-              </div>
-            </div>
             <input
               type="text"
               value={reason}
