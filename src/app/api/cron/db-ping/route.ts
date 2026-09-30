@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { connectMongoose } from "@/lib/db/mongoose";
+import { reportError } from "@/lib/monitoring/discord";
 
 // 캐시 없이 매 요청마다 실제로 DB에 핑을 보낸다
 export const dynamic = "force-dynamic";
@@ -32,6 +33,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, latencyMs: Date.now() - startedAt });
   } catch (error) {
     console.error("[db-ping] MongoDB ping failed", error);
+    await reportError(error, {
+      source: "db-ping",
+      method: "GET",
+      path: "/api/cron/db-ping",
+    });
     return NextResponse.json(
       { ok: false, latencyMs: Date.now() - startedAt },
       { status: 503 },
