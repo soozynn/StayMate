@@ -52,8 +52,8 @@ export default function HomePage() {
           <div>
             <h2 className="mb-3 text-lg font-bold text-slate-900">이용 안내</h2>
             <ul className="space-y-2 text-sm text-slate-500">
-              <li className="flex gap-2">
-                <span className="mt-0.5 text-slate-900">•</span>
+              <li className="flex gap-2 font-semibold text-blue-600">
+                <span className="mt-0.5">•</span>
                 최대 3인까지 이용 가능합니다
               </li>
               <li className="flex flex-col gap-1">
@@ -96,10 +96,9 @@ export default function HomePage() {
 }
 
 const amenities = [
-  { icon: "🛁", label: "욕실" },
-  { icon: "🍳", label: "주방" },
-  { icon: "📶", label: "와이파이" },
+  { icon: "🛋️", label: "소파베드 이용 가능" },
+  { icon: "🐾", label: "반려동물 동반 가능" },
   { icon: "🅿️", label: "주차 가능" },
-  { icon: "❄️", label: "에어컨" },
-  { icon: "🔥", label: "난방" },
+  { icon: "🏡", label: "단지 내 게스트하우스 이용 가능" },
+  { icon: "🍳", label: "조식 가능" },
 ];
