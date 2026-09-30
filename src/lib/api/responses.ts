@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { ZodError } from "zod";
 
+import { reportError } from "@/lib/monitoring/discord";
 import {
   getReservationServiceStatus,
   ReservationServiceError,
@@ -22,6 +23,8 @@ export function handleRouteError(error: unknown) {
   }
 
   console.error(error);
+  // 500으로 응답하는 예상 못한 에러는 Discord로 알림 (응답 지연 없이 응답 후 전송)
+  after(() => reportError(error, { source: "api-route" }));
 
   return jsonError("Internal server error", 500);
 }

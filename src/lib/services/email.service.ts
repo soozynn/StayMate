@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 
 import { getServerEnv } from "@/lib/env";
+import { reportError } from "@/lib/monitoring/discord";
 import type { SerializedReservation } from "@/lib/services/reservation.service";
 
 let transporter: nodemailer.Transporter | null = null;
@@ -272,6 +273,11 @@ export async function sendAdminNotification(
         `[EmailService] Admin 알림 이메일 발송 실패 (${email}):`,
         error,
       );
+      await reportError(error, {
+        source: "email",
+        level: "warning",
+        extra: { 메일: "Admin 알림 이메일", 수신자: email },
+      });
     }
   }
 }
@@ -354,6 +360,11 @@ export async function sendGuestConfirmation(
       `[EmailService] Guest 확정 이메일 발송 실패 (${reservation.guestEmail}):`,
       error,
     );
+    await reportError(error, {
+      source: "email",
+      level: "warning",
+      extra: { 메일: "Guest 확정 이메일", 수신자: reservation.guestEmail },
+    });
   }
 }
 
@@ -421,6 +432,11 @@ export async function sendGuestRejection(
       `[EmailService] Guest 거절 이메일 발송 실패 (${reservation.guestEmail}):`,
       error,
     );
+    await reportError(error, {
+      source: "email",
+      level: "warning",
+      extra: { 메일: "Guest 거절 이메일", 수신자: reservation.guestEmail },
+    });
   }
 }
 
@@ -488,5 +504,10 @@ export async function sendGuestCancellation(
       `[EmailService] Guest 취소 이메일 발송 실패 (${reservation.guestEmail}):`,
       error,
     );
+    await reportError(error, {
+      source: "email",
+      level: "warning",
+      extra: { 메일: "Guest 취소 이메일", 수신자: reservation.guestEmail },
+    });
   }
 }

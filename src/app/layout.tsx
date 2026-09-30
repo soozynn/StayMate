@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { SessionProvider } from "@/components/auth/session-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { ClientErrorReporter } from "@/components/monitoring/client-error-reporter";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -23,6 +24,7 @@ export default function RootLayout({
   return (
     <html lang="ko" className="h-full antialiased">
       <body className="min-h-full bg-[--color-background]">
+        <ClientErrorReporter />
         <SessionProvider>
           <QueryProvider>{children}</QueryProvider>
         </SessionProvider>

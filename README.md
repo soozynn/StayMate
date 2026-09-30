@@ -56,6 +56,7 @@ cp .env.example .env
 | `SMTP_*` | SMTP 서버 정보 (Gmail) |
 | `MAIL_FROM` | 발신 이메일 주소 |
 | `PROPERTY_ADDRESS` | 예약 확정 이메일에 포함될 숙소 주소 |
+| `DISCORD_WEBHOOK_URL` | 에러 알림을 받을 Discord 웹훅 URL (선택, 아래 참고) |
 
 ### 2. 의존성 설치 및 실행
 
@@ -65,6 +66,21 @@ pnpm dev
 ```
 
 [http://localhost:3000](http://localhost:3000) 에서 확인하세요.
+
+## 에러 알림 (Discord)
+
+서버·브라우저에서 예상치 못한 에러가 나면 Discord 채널로 바로 알림이 옵니다.
+
+- **알림 대상** — API 500 에러, 서버 렌더링/서버 액션/미들웨어 에러, 브라우저의 처리되지 않은 에러, 예약 메일 발송 실패(경고)
+- **알림 내용** — 에러 메시지, 스택 트레이스, 요청 경로, 환경(production/preview)
+- **도배 방지** — 같은 에러는 1분에 한 번만 전송, DB 접속 정보는 가려서 전송
+
+설정 방법:
+
+1. Discord 채널 설정 → 연동 → 웹후크 → 새 웹후크 만들기 → **웹후크 URL 복사**
+2. Vercel 프로젝트 Settings → Environment Variables에 `DISCORD_WEBHOOK_URL`로 추가 후 재배포
+
+`DISCORD_WEBHOOK_URL`이 비어 있으면 알림은 보내지 않습니다.
 
 ## 배포
 
